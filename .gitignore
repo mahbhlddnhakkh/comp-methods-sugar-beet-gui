@@ -1,0 +1,6 @@
+*/__pycache__/*
+/venv/*
+/idea/*
+#/test*.txt
+/output*.txt
+/crashtest.py
