@@ -55,7 +55,7 @@ def tab_manual() -> None:
     n_input = None
     with dpg.group(horizontal=True):
         dpg.add_text("Введите n")
-        n_input = dpg.add_input_int(min_value=1, max_value=20, default_value=CFG.manual_matrix_default_n, min_clamped=True, max_clamped=True, callback=set_n)
+        n_input = dpg.add_input_int(min_value=mu_div, max_value=20, default_value=CFG.manual_matrix_default_n, min_clamped=True, max_clamped=True, callback=set_n)
     m_table = matrix_table(False)
     set_n(None, dpg.get_value(n_input))
     m_algs = select_algs(exp_res)

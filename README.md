@@ -1,4 +1,4 @@
-# comp-methods-sugar-beet
+# comp-methods-sugar-beet-gui
 ### Создать venv
 ```sh
 python -m venv venv

@@ -93,7 +93,7 @@ class matrix_table:
         '''
         Fills matrix from txt file
         '''
-        if (file_path == ()):
+        if (file_path == () or file_path == ""):
             return
         lines = None
         with open(file_path, "r") as f:
@@ -131,14 +131,14 @@ class select_algs:
     _selected_algs = None
     _params = None
     _exp_res = None
-    _params_launced_once = None
+    _params_launched_once = None
     _checkbox_default_value = None
 
     def __init__(self, exp_res=None):
         self._exp_res = exp_res
         self._selected_algs = [True]*len(algs)
         self.run_default_params()
-        self._params_launced_once = False
+        self._params_launched_once = False
         self._algs_group = dpg.add_group(horizontal=True)
         self._checkbox_default_value = False
         dpg.add_button(label="Выбрать алгоритмы", parent=self._algs_group, callback=self.create_select_algs_popup)
@@ -165,7 +165,7 @@ class select_algs:
             center_pos_popup(popup)
 
     def create_select_params_popup(self):
-        self._params_launced_once = True
+        self._params_launched_once = True
         with dpg.window(label="Выбрать параметры алгоритмов", modal=True, no_close=True) as popup:
             self.generate_params_on_popup(popup)
     
@@ -236,5 +236,5 @@ class select_algs:
         self.set_exp_res()
     
     def run_default_if_params_popup_not_opened(self):
-        if (not self._params_launced_once or self._checkbox_default_value):
+        if (not self._params_launched_once or self._checkbox_default_value):
             self.run_default_params()
