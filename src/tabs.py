@@ -1,10 +1,12 @@
 import dearpygui.dearpygui as dpg
-from src.gui_util import matrix_table, select_algs, convert_to_p_matrix
-from src.config import CFG
+from src.gui_util import matrix_table, select_algs, convert_to_p_matrix, generate_result_plot_table
+from src.config import CFG, mu_div
 from src.util import exp_res_props
 from src.experiment import do_experiment
 from src.algorithms import algs
 from tkinter import filedialog
+
+big_result_table = None
 
 def tab_manual() -> None:
     '''
@@ -16,6 +18,7 @@ def tab_manual() -> None:
         m_table.set_from_file(filedialog.askopenfilename())
         dpg.unlock_mutex()
         dpg.set_value(n_input, m_table._n)
+        exp_res.n = m_table._n
 
     def set_n(sender, app_data):
         exp_res.n = app_data
@@ -29,14 +32,14 @@ def tab_manual() -> None:
             convert_to_p_matrix(m)
         exp_res.init(len(algs))
         do_experiment(m, exp_res, 0)
-        #print(exp_res)
         dpg.push_container_stack(res_group)
-        # TODO: table + plot
+        generate_result_plot_table(exp_res, True)
         for i in range(len(algs)):
             if (exp_res.chosen_algs[i]):
                 dpg.add_separator()
-                dpg.add_text(f'{algs[i]["name"]} ; S = {exp_res.last_res[i][1]}')
-                dpg.add_text(f'Выбор: {exp_res.last_res[i][0]}')
+                dpg.add_text(f'{algs[i]["name"]}')
+                dpg.add_text(f'S = {exp_res.last_res[i][1]}')
+                dpg.add_text(f'Выбор: {exp_res.last_res[i][0]+1}')
                 res_table = matrix_table(True)
                 res_table.set_matrix(m)
                 res_table.paint_cols(exp_res.last_res[i][0])

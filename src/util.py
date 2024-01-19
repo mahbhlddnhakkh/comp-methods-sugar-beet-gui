@@ -1,7 +1,6 @@
 from src.config import CFG
 from typing import Tuple, Dict, List
 import numpy as np
-from matplotlib import pyplot as plt
 import os
 import json
 

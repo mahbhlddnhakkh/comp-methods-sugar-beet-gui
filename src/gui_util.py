@@ -1,11 +1,13 @@
 import dearpygui.dearpygui as dpg
 import os
 from src.config import CFG
-from src.themes import highlight_cell_theme
+from src.themes import highlight_cell_theme, plot_theme_1
 from src.util import generate_matrix_main, generate_matrix_main_ripening, convert_to_p_matrix
 from src.algorithms import algs
 from typing import Tuple, Dict, List
 import numpy as np
+from matplotlib import pyplot as plt
+from multiprocessing import Process
 
 def dpg_add_input(dtype=str, **kwargs):
     if (dtype is int):
@@ -238,3 +240,41 @@ class select_algs:
     def run_default_if_params_popup_not_opened(self):
         if (not self._params_launched_once or self._checkbox_default_value):
             self.run_default_params()
+
+def generate_result_plot_table(exp_res, is_manual=False):
+    '''
+    Generates results and plot table
+    '''
+
+    def show_matplotlib_plot(exp_res):
+        '''
+        Shows optional matplotlib plot.
+        Also have to run it in a different process because everything breaks if I use dpg's thread 
+        '''
+        def show_matplotlib_plot_process(exp_res):
+            plt.title(CFG.plot_title)
+            plt.xlabel(CFG.plot_x_label)
+            plt.ylabel(CFG.plot_y_label)
+            x_arr = np.arange(1, exp_res.n+1)
+            for i in range(len(algs)):
+                if (exp_res.chosen_algs[i]):
+                    plt.plot(x_arr, exp_res.phase_averages[i], label=algs[i]["name"], marker='o')
+            plt.legend()
+            plt.show()
+        p = Process(target=show_matplotlib_plot_process, args=(exp_res,))
+        p.start()
+        p.join()
+
+    dpg.add_separator()
+
+    # TODO: add table?
+
+    with dpg.plot(label=CFG.plot_title, width=-1, anti_aliased=True):
+        dpg.add_plot_legend(outside=True, location=dpg.mvPlot_Location_East)
+        x = dpg.add_plot_axis(dpg.mvXAxis, label=CFG.plot_x_label)
+        y = dpg.add_plot_axis(dpg.mvYAxis, label=CFG.plot_y_label)
+        x_arr = np.arange(1, exp_res.n+1)
+        for i in range(len(algs)):
+            if (exp_res.chosen_algs[i]):
+                dpg.bind_item_theme(dpg.add_line_series(x_arr, exp_res.phase_averages[i], label=algs[i]["name"], parent=y), plot_theme_1)
+    dpg.add_button(label="Посмотреть график в matplotlib", user_data=exp_res, callback=lambda sender, app_data, user_data: show_matplotlib_plot(user_data))

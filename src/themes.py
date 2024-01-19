@@ -101,5 +101,9 @@ def create_theme_imgui_light() -> Union[str, int]:
     return theme_id
 
 with dpg.theme() as highlight_cell_theme:
-        with dpg.theme_component(dpg.mvAll):
-            dpg.add_theme_color(dpg.mvThemeCol_FrameBg, (152, 152, 152, 255))
+    with dpg.theme_component(dpg.mvAll):
+        dpg.add_theme_color(dpg.mvThemeCol_FrameBg, (152, 152, 152, 255))
+
+with dpg.theme() as plot_theme_1:
+    with dpg.theme_component(dpg.mvLineSeries):
+        dpg.add_theme_style(dpg.mvPlotStyleVar_Marker, dpg.mvPlotMarker_Square, category=dpg.mvThemeCat_Plots)
