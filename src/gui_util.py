@@ -303,16 +303,17 @@ def generate_result_plot_table(exp_res, is_manual=False):
             dpg.add_text(str(exp_res.n))
             tmp = ""
             for e in exp_res.params_algs_specials:
-                tmp += algs[e]["name"] + ":\n"
-                cur_params = algs[e]["params"]
-                for ee in range(len(cur_params)):
-                    tmp += cur_params[ee]["name"] + " = " + str(exp_res.params_algs_specials[e][ee]) + '\n'
+                if (exp_res.chosen_algs[e]):
+                    tmp += algs[e]["name"] + ":\n"
+                    cur_params = algs[e]["params"]
+                    for ee in range(len(cur_params)):
+                        tmp += cur_params[ee]["name"] + " = " + str(exp_res.params_algs_specials[e][ee]) + '\n'
             dpg.add_text(tmp)
             for i in range(len(algs)):
                 if (exp_res.chosen_algs[i]):
                     dpg.add_text(f'{exp_res.phase_averages[i][-1]}\n{exp_res.average_error[i]}')
                 else:
-                    dpg.add_text("-")
+                    dpg.add_text("")
     dpg.add_button(label="Сохранить таблицу (csv)", user_data=(exp_res, is_manual, tb), callback=lambda sender, app_data, user_data: save_as_csv(*user_data))
     dpg.add_text("")
 

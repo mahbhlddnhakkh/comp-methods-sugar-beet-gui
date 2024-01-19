@@ -43,6 +43,9 @@ def tab_manual() -> None:
                 dpg.add_text(f'S = {exp_res.last_res[i][1]}')
                 dpg.add_text(f'Погрешность = {exp_res.average_error[i]}')
                 dpg.add_text(f'Выбор: {exp_res.last_res[i][0]+1}')
+                if ("params" in algs[i]):
+                    for j in range(len(algs[i]["params"])):
+                        dpg.add_text(f'{algs[i]["params"][j]["name"]} = {exp_res.params_algs_specials[i][j]}')
                 res_table = matrix_table(True)
                 res_table.set_matrix(m)
                 res_table.paint_cols(exp_res.last_res[i][0])
