@@ -1,5 +1,6 @@
 import dearpygui.dearpygui as dpg
-dpg.create_context()
+if (__name__ == "__main__"):
+    dpg.create_context()
 from src.themes import create_theme_imgui_light
 from src.tabs import tab_manual
 
@@ -23,7 +24,7 @@ def main():
     create_gui()
     dpg.bind_font("Default font")
 
-    dpg.create_viewport(title='comp-methods-sugar-beet-gui', width=900, height=600)
+    dpg.create_viewport(title='comp-methods-sugar-beet-gui', width=1200, height=600)
     dpg.setup_dearpygui()
     dpg.show_viewport()
     dpg.set_primary_window("Primary window", True)

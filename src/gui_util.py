@@ -7,7 +7,11 @@ from src.algorithms import algs
 from typing import Tuple, Dict, List
 import numpy as np
 from matplotlib import pyplot as plt
-from multiprocessing import Process
+import matplotlib
+matplotlib.use("agg")
+from tkinter import filedialog
+import csv
+#from threading import Thread
 
 def dpg_add_input(dtype=str, **kwargs):
     if (dtype is int):
@@ -23,6 +27,10 @@ def center_pos_popup(_popup):
     width = dpg.get_item_width(_popup)
     height = dpg.get_item_height(_popup)
     dpg.set_item_pos(_popup, [viewport_width // 2 - width // 2, viewport_height // 2 - height // 2])
+
+def dpg_add_separator():
+    dpg.add_text("")
+    dpg.add_separator()
 
 class matrix_table:
     '''
@@ -246,28 +254,67 @@ def generate_result_plot_table(exp_res, is_manual=False):
     Generates results and plot table
     '''
 
-    def show_matplotlib_plot(exp_res):
+    def download_plot_matplotlib(exp_res):
         '''
-        Shows optional matplotlib plot.
-        Also have to run it in a different process because everything breaks if I use dpg's thread 
+        Downloads plot
+        https://matplotlib.org/stable/users/explain/figure/backends.html#static-backends
         '''
-        def show_matplotlib_plot_process(exp_res):
-            plt.title(CFG.plot_title)
-            plt.xlabel(CFG.plot_x_label)
-            plt.ylabel(CFG.plot_y_label)
-            x_arr = np.arange(1, exp_res.n+1)
+        plt.title(CFG.plot_title)
+        plt.xlabel(CFG.plot_x_label)
+        plt.ylabel(CFG.plot_y_label)
+        x_arr = np.arange(1, exp_res.n+1)
+        for i in range(len(algs)):
+            if (exp_res.chosen_algs[i]):
+                plt.plot(x_arr, exp_res.phase_averages[i], label=algs[i]["name"], marker='o')
+        plt.legend()
+        #plt.show()
+        save_path = filedialog.asksaveasfilename(filetypes=[("Изображение", ".png")])
+        if (save_path != "" and save_path != ()):
+            plt.savefig(save_path)
+    
+    def save_as_csv(exp_res, is_manual, tb):
+        '''
+        Saves table as csv for whatever reason
+        '''
+        tb_ch = dpg.get_item_children(tb)
+        save_path = filedialog.asksaveasfilename(filetypes=[("Таблица", ".csv")])
+        if (save_path == "" or save_path == ()):
+            return
+        with open(save_path, 'w') as f:
+            writer = csv.writer(f)
+            first_row = []
+            for e in tb_ch[0]:
+                first_row.append(dpg.get_item_label(e))
+            writer.writerow(first_row)
+            writer.writerow(dpg.get_values(dpg.get_item_children(tb_ch[1][0])[1]))
+
+    with dpg.table(header_row=True, borders_innerH=True, borders_outerH=True, borders_innerV=True, borders_outerV=True, resizable=True, policy=dpg.mvTable_SizingStretchProp) as tb:
+        if (not is_manual):
+            dpg.add_table_column(label="Параметры")
+            dpg.add_table_column(label="Кол-во экспериментов")
+        for e in ["n", "Параметры алгоритмов"]:
+            dpg.add_table_column(label=e)
+        for i in range(len(algs)):
+            dpg.add_table_column(label=algs[i]["name"] + " (S / Error)")
+        with dpg.table_row():
+            if (not is_manual):
+                dpg.add_text("sample text")
+                dpg.add_text(str(exp_res.exp_count))
+            dpg.add_text(str(exp_res.n))
+            tmp = ""
+            for e in exp_res.params_algs_specials:
+                tmp += algs[e]["name"] + ":\n"
+                cur_params = algs[e]["params"]
+                for ee in range(len(cur_params)):
+                    tmp += cur_params[ee]["name"] + " = " + str(exp_res.params_algs_specials[e][ee]) + '\n'
+            dpg.add_text(tmp)
             for i in range(len(algs)):
                 if (exp_res.chosen_algs[i]):
-                    plt.plot(x_arr, exp_res.phase_averages[i], label=algs[i]["name"], marker='o')
-            plt.legend()
-            plt.show()
-        p = Process(target=show_matplotlib_plot_process, args=(exp_res,))
-        p.start()
-        p.join()
-
-    dpg.add_separator()
-
-    # TODO: add table?
+                    dpg.add_text(f'{exp_res.phase_averages[i][-1]}\n{exp_res.average_error[i]}')
+                else:
+                    dpg.add_text("-")
+    dpg.add_button(label="Сохранить таблицу (csv)", user_data=(exp_res, is_manual, tb), callback=lambda sender, app_data, user_data: save_as_csv(*user_data))
+    dpg.add_text("")
 
     with dpg.plot(label=CFG.plot_title, width=-1, anti_aliased=True):
         dpg.add_plot_legend(outside=True, location=dpg.mvPlot_Location_East)
@@ -277,4 +324,7 @@ def generate_result_plot_table(exp_res, is_manual=False):
         for i in range(len(algs)):
             if (exp_res.chosen_algs[i]):
                 dpg.bind_item_theme(dpg.add_line_series(x_arr, exp_res.phase_averages[i], label=algs[i]["name"], parent=y), plot_theme_1)
-    dpg.add_button(label="Посмотреть график в matplotlib", user_data=exp_res, callback=lambda sender, app_data, user_data: show_matplotlib_plot(user_data))
+    # TODO: in multithreading seems not to work and multiprocessing crashes gnome. Too bad!
+    # Instead we can add "save plot" button
+    #dpg.add_button(label="Посмотреть график в matplotlib", user_data=exp_res, callback=lambda sender, app_data, user_data: show_matplotlib_plot(user_data))
+    dpg.add_button(label="Сохранить график", user_data=exp_res, callback=lambda sender, app_data, user_data: download_plot_matplotlib(user_data))

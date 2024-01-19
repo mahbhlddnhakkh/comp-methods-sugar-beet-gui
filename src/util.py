@@ -20,11 +20,18 @@ class exp_res_props:
     phase_averages: List[List[float]] = None
     # stores results for each algorithm on the last experiment (useful in manual)
     last_res: List[tuple] = None
+    # stores average differences for each algorithm
+    average_error: List[float] = None
 
     def init(self, algs_len):
         self.params = {}
         self.phase_averages = [[0.0]*self.n for i in range(algs_len)]
         self.last_res = [None]*algs_len
+
+    def calculate_average_error(self, algs_len):
+        self.average_error = [None]*algs_len
+        for i in range(algs_len):
+            self.average_error[i] = (self.phase_averages[0][-1] - self.phase_averages[i][-1]) / self.phase_averages[0][-1]
 
     def dump_to_file(self, path: str) -> None:
         '''

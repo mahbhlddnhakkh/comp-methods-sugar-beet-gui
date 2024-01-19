@@ -32,13 +32,16 @@ def tab_manual() -> None:
             convert_to_p_matrix(m)
         exp_res.init(len(algs))
         do_experiment(m, exp_res, 0)
+        exp_res.calculate_average_error(len(algs))
         dpg.push_container_stack(res_group)
         generate_result_plot_table(exp_res, True)
+        dpg.add_text("")
         for i in range(len(algs)):
             if (exp_res.chosen_algs[i]):
                 dpg.add_separator()
                 dpg.add_text(f'{algs[i]["name"]}')
                 dpg.add_text(f'S = {exp_res.last_res[i][1]}')
+                dpg.add_text(f'Погрешность = {exp_res.average_error[i]}')
                 dpg.add_text(f'Выбор: {exp_res.last_res[i][0]+1}')
                 res_table = matrix_table(True)
                 res_table.set_matrix(m)
@@ -63,4 +66,6 @@ def tab_manual() -> None:
     set_n(None, dpg.get_value(n_input))
     m_algs = select_algs(exp_res)
     dpg.add_button(label="Вычислить", callback=experiment_simple)
+    # Cool padding
+    dpg.add_text("")
     res_group = dpg.add_group()
