@@ -1,8 +1,10 @@
-from src.config import CFG
+from src.config import CFG, mu_div
 from typing import Tuple, Dict, List
 import numpy as np
-import os
+import os.path
 import json
+import math
+import sys
 
 class exp_res_props:
     '''
@@ -10,6 +12,7 @@ class exp_res_props:
     '''
     n: int = 0
     exp_count: int = 0
+    exp_name: str = None
     # index of chosen algs. Should be sorted, size must be <= len(algs), each element must be from 0 to len(algs)
     chosen_algs: List[int] = None
     # contain basic information. string: string
@@ -24,7 +27,7 @@ class exp_res_props:
     average_error: List[float] = None
 
     def init(self, algs_len):
-        self.params = {}
+        #self.params = {}
         self.phase_averages = [[0.0]*self.n for i in range(algs_len)]
         self.last_res = [None]*algs_len
 
@@ -37,6 +40,8 @@ class exp_res_props:
         '''
         Dumps properties to json file
         '''
+        # since we are dumping this, we probably don't need last result anymore (we shouldn't dump in manual tab)
+        self.last_res = None
         with open(os.path.join(path, CFG.exp_res_data_file), "w") as f:
             json.dump(self.__dict__, f, indent=2, ensure_ascii=False)
 
@@ -46,7 +51,7 @@ class exp_res_props:
         '''
         with open(os.path.join(path, CFG.exp_res_data_file), "r") as f:
             self.__dict__ = json.load(f)
-    
+
     def __str__(self):
         return json.dumps(dict(self.__dict__, **{"last_res": None}), ensure_ascii=False)
 
@@ -68,26 +73,32 @@ def convert_to_p_matrix(m: np.ndarray) -> None:
     for i in range(1, n):
         m[:, i] = m[:, i] * m[:, i-1]
 
-def generate_matrix_main_ripening(n: int, a_i: Tuple[float, float], b_i_j_1: Tuple[float, float], b_i_j_2: Tuple[float, float]) -> np.ndarray:
+def convert_special_range_to_range(x: tuple) -> tuple:
+    '''
+    Converts (v_min, v_max, v_min_epsilon, v_max_epsilon) to (v_min_calc, v_max_calc)
+    '''
+    return (x[0] + x[2], x[1] - x[3])
+
+def generate_matrix_main_ripening(n: int, a_i: Tuple[float, float], b_ij_1: Tuple[float, float], b_ij_2: Tuple[float, float], **kwargs) -> np.ndarray:
     '''
     Generates matrix with ripening
     Uses parameters a_i, b_i_j_1, b_i_j_2 <- tuples with min and max values for each
     '''
     mu: int = int(math.floor(n / mu_div))
     m: np.ndarray = np.zeros((n, n), dtype=float)
-    m[:, 0] = do_rand((n, ), *a_i)
-    m[:, 1:mu+1] = do_rand((n, mu), *b_i_j_1)
-    m[:, mu+1:n] = do_rand((n, n-1-mu), *b_i_j_2)
+    m[:, 0] = do_rand((n, ), *convert_special_range_to_range(a_i))
+    m[:, 1:mu+1] = do_rand((n, mu), *convert_special_range_to_range(b_ij_1))
+    m[:, mu+1:n] = do_rand((n, n-1-mu), *convert_special_range_to_range(b_ij_2))
     return m
 
-def generate_matrix_main(n: int, a_i: Tuple[float, float], b_i_j: Tuple[float, float]) -> np.ndarray:
+def generate_matrix_main(n: int, a_i: Tuple[float, float], b_ij: Tuple[float, float], **kwargs) -> np.ndarray:
     '''
     Generates matrix without ripening
     Uses parameters a_i, b_i_j <- tuples with min and max values for each
     '''
     m: np.ndarray = np.zeros((n, n), dtype=float)
-    m[:, 0] = do_rand((n, ), *a_i)
-    m[:, 1:n] = do_rand((n, n-1), *b_i_j)
+    m[:, 0] = do_rand((n, ), *convert_special_range_to_range(a_i))
+    m[:, 1:n] = do_rand((n, n-1), *convert_special_range_to_range(b_ij))
     return m
 
 def test_file_write(file_path: str) -> bool:

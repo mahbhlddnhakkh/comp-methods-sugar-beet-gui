@@ -2,7 +2,7 @@ import dearpygui.dearpygui as dpg
 if (__name__ == "__main__"):
     dpg.create_context()
 from src.themes import create_theme_imgui_light
-from src.tabs import tab_manual
+from src.tabs import tab_manual, tab_experiment
 
 def create_gui():
     with dpg.window(tag="Primary window"):
@@ -11,7 +11,7 @@ def create_gui():
             with dpg.tab(label="Вручную"):
                 tab_manual()
             with dpg.tab(label="Эксперименты"):
-                pass
+                tab_experiment()
             with dpg.tab(label="Анализ экспериментов"):
                 pass
 
@@ -24,7 +24,7 @@ def main():
     create_gui()
     dpg.bind_font("Default font")
 
-    dpg.create_viewport(title='comp-methods-sugar-beet-gui', width=1200, height=600)
+    dpg.create_viewport(title='comp-methods-sugar-beet-gui', width=1400, height=800, min_width=1080, min_height=500)
     dpg.setup_dearpygui()
     dpg.show_viewport()
     dpg.set_primary_window("Primary window", True)

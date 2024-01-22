@@ -11,7 +11,6 @@ import matplotlib
 matplotlib.use("agg")
 from tkinter import filedialog
 import csv
-#from threading import Thread
 
 def dpg_add_input(dtype=str, **kwargs):
     if (dtype is int):
@@ -31,6 +30,12 @@ def center_pos_popup(_popup):
 def dpg_add_separator():
     dpg.add_text("")
     dpg.add_separator()
+
+def dpg_get_values(items):
+    if (type(items) is list or type(items) is tuple):
+        return dpg.get_values(items)
+    else:
+        return dpg.get_value(items)
 
 class matrix_table:
     '''
@@ -153,7 +158,10 @@ class select_algs:
         self._checkbox_default_value = False
         dpg.add_button(label="Выбрать алгоритмы", parent=self._algs_group, callback=self.create_select_algs_popup)
         dpg.add_button(label="Выбрать параметры алгоритмов", parent=self._algs_group, callback=self.create_select_params_popup)
-        dpg.add_checkbox(label="Параметры алгоритмов по умолчанию", parent=self._algs_group, user_data=dpg.last_item(), callback=self.checkbox_always_default_callback)
+        dpg.add_checkbox(label="Параметры алгоритмов по умолчанию", parent=self._algs_group, user_data=dpg.last_item(), callback=self.checkbox_always_default_callback, default_value=True)
+        self.checkbox_always_default_callback(dpg.last_item(), dpg.get_value(dpg.last_item()), dpg.get_item_user_data(dpg.last_item()))
+        with dpg.tooltip(dpg.last_item()):
+            dpg.add_text("Некоторые параметры по умолчанию зависят от n. Используйте, чтобы n 'подтягивалось' за параметрами автоматически.")
         self.set_exp_res()
 
     def checkbox_always_default_callback(self, sender, app_data, user_data):
@@ -268,7 +276,9 @@ def generate_result_plot_table(exp_res, is_manual=False):
                 plt.plot(x_arr, exp_res.phase_averages[i], label=algs[i]["name"], marker='o')
         plt.legend()
         #plt.show()
+        dpg.lock_mutex()
         save_path = filedialog.asksaveasfilename(filetypes=[("Изображение", ".png")])
+        dpg.unlock_mutex()
         if (save_path != "" and save_path != ()):
             plt.savefig(save_path)
     
@@ -277,7 +287,9 @@ def generate_result_plot_table(exp_res, is_manual=False):
         Saves table as csv for whatever reason
         '''
         tb_ch = dpg.get_item_children(tb)
+        dpg.lock_mutex()
         save_path = filedialog.asksaveasfilename(filetypes=[("Таблица", ".csv")])
+        dpg.unlock_mutex()
         if (save_path == "" or save_path == ()):
             return
         with open(save_path, 'w') as f:
@@ -290,15 +302,39 @@ def generate_result_plot_table(exp_res, is_manual=False):
 
     with dpg.table(header_row=True, borders_innerH=True, borders_outerH=True, borders_innerV=True, borders_outerV=True, resizable=True, policy=dpg.mvTable_SizingStretchProp) as tb:
         if (not is_manual):
+            dpg.add_table_column(label="Название")
             dpg.add_table_column(label="Параметры")
             dpg.add_table_column(label="Кол-во экспериментов")
-        for e in ["n", "Параметры алгоритмов"]:
+        for e in ("n", "Параметры алгоритмов"):
             dpg.add_table_column(label=e)
         for i in range(len(algs)):
             dpg.add_table_column(label=algs[i]["name"] + " (S / Error)")
         with dpg.table_row():
             if (not is_manual):
-                dpg.add_text("sample text")
+                dpg.add_text(exp_res.exp_name)
+                tmp = ""
+                for key in exp_res.params.keys():
+                    p = exp_res.params[key]
+                    tmp += key
+                    if (p == None):
+                        tmp += "\n"
+                        continue
+                    tmp += " = "
+                    if (type(p) is tuple or type(p) is list):
+                        if (p[2] != 0):
+                            tmp += "("
+                        else:
+                            tmp += "["
+                        tmp += f'{p[0]}, {p[1]}'
+                        if (p[3] != 0):
+                            tmp += ")"
+                        else:
+                            tmp += "]"
+                    else:
+                        tmp += str(p)
+                    tmp += "\n"
+                tmp = tmp[:len(tmp)-1]
+                dpg.add_text(tmp)
                 dpg.add_text(str(exp_res.exp_count))
             dpg.add_text(str(exp_res.n))
             tmp = ""
@@ -319,13 +355,130 @@ def generate_result_plot_table(exp_res, is_manual=False):
 
     with dpg.plot(label=CFG.plot_title, width=-1, anti_aliased=True):
         dpg.add_plot_legend(outside=True, location=dpg.mvPlot_Location_East)
+        #dpg.add_plot_legend()
         x = dpg.add_plot_axis(dpg.mvXAxis, label=CFG.plot_x_label)
         y = dpg.add_plot_axis(dpg.mvYAxis, label=CFG.plot_y_label)
-        x_arr = np.arange(1, exp_res.n+1)
+        x_arr = np.arange(1, exp_res.n+1, dtype=int)
         for i in range(len(algs)):
             if (exp_res.chosen_algs[i]):
                 dpg.bind_item_theme(dpg.add_line_series(x_arr, exp_res.phase_averages[i], label=algs[i]["name"], parent=y), plot_theme_1)
-    # TODO: in multithreading seems not to work and multiprocessing crashes gnome. Too bad!
-    # Instead we can add "save plot" button
-    #dpg.add_button(label="Посмотреть график в matplotlib", user_data=exp_res, callback=lambda sender, app_data, user_data: show_matplotlib_plot(user_data))
     dpg.add_button(label="Сохранить график", user_data=exp_res, callback=lambda sender, app_data, user_data: download_plot_matplotlib(user_data))
+
+def generate_input_for_exp(param):
+    '''
+    Generates input for experiment params
+    '''
+
+    def generate_input_range(param) -> tuple:
+        '''
+        Generates input with special 'range'
+        E.g. to type range for a_i
+        Return tuple of 2 dpg inputs: min and max
+        '''
+        def manage_range(sender, app_data, user_data):
+            param = user_data[2]
+            if (user_data[0] and ("range_min" in param and param["range_min"]["type"] != "include" and app_data <= param["range_min"]["min"] or "range_max" in param and param["range_max"]["type"] != "include" and app_data >= param["range_max"]["max"])):
+                # left
+                dpg.set_value(user_data[1], "(")
+            elif (user_data[0]):
+                dpg.set_value(user_data[1], "[")
+            if (not user_data[0] and ("range_max" in param and param["range_max"]["type"] != "include" and app_data >= param["range_max"]["max"] or "range_min" in param and param["range_min"]["type"] != "include" and app_data <= param["range_min"]["min"])):
+                # right
+                dpg.set_value(user_data[1], ")")
+            elif (not user_data[0]):
+                dpg.set_value(user_data[1], "]")
+
+        res = [None, None]
+        range_text = "Диапазон: "
+        bracket_left = dpg.add_text("[")
+        kwargs = ({}, {})
+        if ("range_min" in param):
+            kwargs[0]["default_value"] = param["range_min"]["min"]
+            kwargs[1]["default_value"] = param["range_min"]["min"]
+            kwargs[0]["min_value"] = param["range_min"]["min"]
+            kwargs[0]["min_clamped"] = True
+            kwargs[1]["min_value"] = param["range_min"]["min"]
+            kwargs[1]["min_clamped"] = True
+            if (param["range_min"]["type"] == "include"):
+                range_text += "["
+            else:
+                range_text += "("
+            range_text += f'{param["range_min"]["min"]}'
+        else:
+            range_text += "(inf"
+        range_text += ", "
+        if ("range_max" in param):
+            kwargs[1]["default_value"] = param["range_max"]["max"]
+            kwargs[1]["max_value"] = param["range_max"]["max"]
+            kwargs[1]["max_clamped"] = True
+            kwargs[0]["max_value"] = param["range_max"]["max"]
+            kwargs[0]["max_clamped"] = True
+            range_text += f'{param["range_max"]["max"]}'
+            if (param["range_max"]["type"] == "include"):
+                range_text += "]"
+            else:
+                range_text += ")"
+        else:
+            range_text += "inf)"
+        if ("value" in param):
+            # TODO: useful when we want to restore experiment (from exp_res_props either from file or from experiments analysis). Use this knowledge!
+            kwargs[0]["default_value"] = param["value"][0]
+            kwargs[1]["default_value"] = param["value"][1]
+            del param["value"]
+        res[0] = dpg_add_input(param["type"], user_data=(True, bracket_left, param), width=100, step=0, callback=manage_range, **(kwargs[0]))
+        dpg.add_text(",")
+        bracket_right = dpg.add_text("]")
+        res[1] = dpg_add_input(param["type"], user_data=(False, bracket_right, param), width=100, step=0, callback=manage_range, before=bracket_right, **(kwargs[1]))
+        dpg.add_text("")
+        dpg.add_text(range_text)
+        for e in res:
+            manage_range(e, dpg.get_value(e), dpg.get_item_user_data(e))
+        return res
+
+    if ("special" in param and "special" == "empty"):
+        return None
+    res = None
+    with dpg.group(horizontal=True):
+        if (not "special" in param):
+            kwargs = {}
+            if ("max" in params):
+                kwargs["max_value"] = params["max"]
+                kwargs["max_clamped"] = True
+                kwargs["default_value"] = params["max"]
+            if ("min" in params):
+                kwargs["min_value"] = params["min"]
+                kwargs["min_clamped"] = True
+                kwargs["default_value"] = params["min"]
+            if ("default" in params):
+                kwargs["default_value"] = params["default"]
+            if ("value" in params):
+                # TODO: useful when we want to restore experiment (from exp_res_props either from file or from experiments analysis). Use this knowledge!
+                kwargs["default_value"] = params["value"]
+                del params["value"]
+            dpg.add_text(param["title"])
+            with dpg.tooltip(dpg.last_item()):
+                dpg.add_text(param["name"])
+            res = dpg_add_input(param["type"], **kwargs)
+        else:
+            if (param["special"] == "range"):
+                dpg.add_text(param["title"])
+                with dpg.tooltip(dpg.last_item()):
+                    dpg.add_text(param["name"])
+                res = generate_input_range(param)
+    if (res != None):
+        param["dpg"] = res
+    return res
+
+def fix_range_min_max_input_exp(params: List[dict]):
+    '''
+    Fixes incorrect range parameters.
+    When min > max, we just swap them. 
+    '''
+    for p in params:
+        if (p.get("special") == "range" and "dpg" in p):
+            vals = dpg.get_values(p["dpg"])
+            if (vals[0] > vals[1]):
+                dpg.set_value(p["dpg"][0], vals[1])
+                dpg.set_value(p["dpg"][1], vals[0])
+                for e in p["dpg"]:
+                    dpg.get_item_configuration(e)["callback"](e, dpg.get_value(e), dpg.get_item_user_data(e))
