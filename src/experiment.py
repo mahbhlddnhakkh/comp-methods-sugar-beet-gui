@@ -19,7 +19,7 @@ def do_experiment(m: np.ndarray, exp_res: exp_res_props, exp_i: int) -> None:
             exp_res.phase_averages[i][k] += phases[k]
 
     for i in range(len(algs)):
-        # optimized max is important for average error
+        # optimized max is important for average error so it will always be calculated (i == 0)
         if (exp_res.chosen_algs[i] or i == 0):
             algs_params = None
             if (i in exp_res.params_algs_specials):

@@ -13,6 +13,10 @@ from tkinter import filedialog
 import csv
 
 def dpg_add_input(dtype=str, **kwargs):
+    '''
+    dpg.add_input_*** but looks for type from argument
+    float -> double because why not?
+    '''
     if (dtype is int):
         return dpg.add_input_int(**kwargs)
     elif (dtype is float):
@@ -28,10 +32,16 @@ def center_pos_popup(_popup):
     dpg.set_item_pos(_popup, [viewport_width // 2 - width // 2, viewport_height // 2 - height // 2])
 
 def dpg_add_separator():
+    '''
+    This separator sometimes looks better than dpg.add_separator()
+    '''
     dpg.add_text("")
     dpg.add_separator()
 
 def dpg_get_values(items):
+    '''
+    Useful when unsure if argument is list or single value
+    '''
     if (type(items) is list or type(items) is tuple):
         return dpg.get_values(items)
     else:
@@ -141,6 +151,9 @@ class matrix_table:
         pass
 
 class select_algs:
+    '''
+    Creates buttons and interface for selecting algorithms and their parameters
+    '''
     # https://github.com/hoffstadt/DearPyGui/issues/1513
     _algs_group = None
     _selected_algs = None
@@ -162,6 +175,7 @@ class select_algs:
         self.checkbox_always_default_callback(dpg.last_item(), dpg.get_value(dpg.last_item()), dpg.get_item_user_data(dpg.last_item()))
         with dpg.tooltip(dpg.last_item()):
             dpg.add_text("Некоторые параметры по умолчанию зависят от n. Используйте, чтобы n 'подтягивалось' за параметрами автоматически.")
+            dpg.add_text("При включении блокируется выбор параметров алгоритмов")
         self.set_exp_res()
 
     def checkbox_always_default_callback(self, sender, app_data, user_data):
@@ -257,48 +271,52 @@ class select_algs:
         if (not self._params_launched_once or self._checkbox_default_value):
             self.run_default_params()
 
-def generate_result_plot_table(exp_res, is_manual=False):
+def download_plot_matplotlib(exp_res, _save_path):
+    '''
+    Downloads plot
+    https://matplotlib.org/stable/users/explain/figure/backends.html#static-backends
+    '''
+    plt.title(CFG.plot_title)
+    plt.xlabel(CFG.plot_x_label)
+    plt.ylabel(CFG.plot_y_label)
+    x_arr = np.arange(1, exp_res.n+1)
+    for i in range(len(algs)):
+        if (exp_res.chosen_algs[i]):
+            plt.plot(x_arr, exp_res.phase_averages[i], label=algs[i]["name"], marker='o')
+    plt.legend()
+    #plt.show()
+    dpg.lock_mutex()
+    save_path = _save_path
+    if (save_path == None):
+        save_path = filedialog.asksaveasfilename(filetypes=[("Изображение", ".png")], initialfile=exp_res.evaluate_exp_name())
+    dpg.unlock_mutex()
+    if (save_path != "" and save_path != ()):
+        plt.savefig(save_path)
+
+def save_table_as_csv(exp_res, is_manual, tb, _save_path):
+    '''
+    Saves table as csv for whatever reason
+    '''
+    tb_ch = dpg.get_item_children(tb)
+    dpg.lock_mutex()
+    save_path = _save_path
+    if (save_path == None):
+        save_path = filedialog.asksaveasfilename(filetypes=[("Таблица", ".csv")], initialfile=exp_res.evaluate_exp_name())
+    dpg.unlock_mutex()
+    if (save_path == "" or save_path == ()):
+        return
+    with open(save_path, 'w') as f:
+        writer = csv.writer(f)
+        first_row = []
+        for e in tb_ch[0]:
+            first_row.append(dpg.get_item_label(e))
+        writer.writerow(first_row)
+        writer.writerow(dpg.get_values(dpg.get_item_children(tb_ch[1][0])[1]))
+
+def generate_result_plot_table(exp_res, is_manual=False) -> tuple:
     '''
     Generates results and plot table
     '''
-
-    def download_plot_matplotlib(exp_res):
-        '''
-        Downloads plot
-        https://matplotlib.org/stable/users/explain/figure/backends.html#static-backends
-        '''
-        plt.title(CFG.plot_title)
-        plt.xlabel(CFG.plot_x_label)
-        plt.ylabel(CFG.plot_y_label)
-        x_arr = np.arange(1, exp_res.n+1)
-        for i in range(len(algs)):
-            if (exp_res.chosen_algs[i]):
-                plt.plot(x_arr, exp_res.phase_averages[i], label=algs[i]["name"], marker='o')
-        plt.legend()
-        #plt.show()
-        dpg.lock_mutex()
-        save_path = filedialog.asksaveasfilename(filetypes=[("Изображение", ".png")])
-        dpg.unlock_mutex()
-        if (save_path != "" and save_path != ()):
-            plt.savefig(save_path)
-    
-    def save_as_csv(exp_res, is_manual, tb):
-        '''
-        Saves table as csv for whatever reason
-        '''
-        tb_ch = dpg.get_item_children(tb)
-        dpg.lock_mutex()
-        save_path = filedialog.asksaveasfilename(filetypes=[("Таблица", ".csv")])
-        dpg.unlock_mutex()
-        if (save_path == "" or save_path == ()):
-            return
-        with open(save_path, 'w') as f:
-            writer = csv.writer(f)
-            first_row = []
-            for e in tb_ch[0]:
-                first_row.append(dpg.get_item_label(e))
-            writer.writerow(first_row)
-            writer.writerow(dpg.get_values(dpg.get_item_children(tb_ch[1][0])[1]))
 
     with dpg.table(header_row=True, borders_innerH=True, borders_outerH=True, borders_innerV=True, borders_outerV=True, resizable=True, policy=dpg.mvTable_SizingStretchProp) as tb:
         if (not is_manual):
@@ -311,7 +329,7 @@ def generate_result_plot_table(exp_res, is_manual=False):
             dpg.add_table_column(label=algs[i]["name"] + " (S / Error)")
         with dpg.table_row():
             if (not is_manual):
-                dpg.add_text(exp_res.exp_name)
+                dpg.add_text(exp_res.evaluate_exp_name())
                 tmp = ""
                 for key in exp_res.params.keys():
                     p = exp_res.params[key]
@@ -350,10 +368,10 @@ def generate_result_plot_table(exp_res, is_manual=False):
                     dpg.add_text(f'{exp_res.phase_averages[i][-1]}\n{exp_res.average_error[i]}')
                 else:
                     dpg.add_text("")
-    dpg.add_button(label="Сохранить таблицу (csv)", user_data=(exp_res, is_manual, tb), callback=lambda sender, app_data, user_data: save_as_csv(*user_data))
+    dpg.add_button(label="Сохранить таблицу (csv)", user_data=(exp_res, is_manual, tb, None), callback=lambda sender, app_data, user_data: save_table_as_csv(*user_data))
     dpg.add_text("")
 
-    with dpg.plot(label=CFG.plot_title, width=-1, anti_aliased=True):
+    with dpg.plot(label=CFG.plot_title, width=-1, anti_aliased=True) as dpg_plot:
         dpg.add_plot_legend(outside=True, location=dpg.mvPlot_Location_East)
         #dpg.add_plot_legend()
         x = dpg.add_plot_axis(dpg.mvXAxis, label=CFG.plot_x_label)
@@ -362,7 +380,8 @@ def generate_result_plot_table(exp_res, is_manual=False):
         for i in range(len(algs)):
             if (exp_res.chosen_algs[i]):
                 dpg.bind_item_theme(dpg.add_line_series(x_arr, exp_res.phase_averages[i], label=algs[i]["name"], parent=y), plot_theme_1)
-    dpg.add_button(label="Сохранить график", user_data=exp_res, callback=lambda sender, app_data, user_data: download_plot_matplotlib(user_data))
+    dpg.add_button(label="Сохранить график", user_data=(exp_res, None), callback=lambda sender, app_data, user_data: download_plot_matplotlib(*user_data))
+    return (tb, dpg_plot)
 
 def generate_input_for_exp(param):
     '''
@@ -420,11 +439,6 @@ def generate_input_for_exp(param):
                 range_text += ")"
         else:
             range_text += "inf)"
-        if ("value" in param):
-            # TODO: useful when we want to restore experiment (from exp_res_props either from file or from experiments analysis). Use this knowledge!
-            kwargs[0]["default_value"] = param["value"][0]
-            kwargs[1]["default_value"] = param["value"][1]
-            del param["value"]
         res[0] = dpg_add_input(param["type"], user_data=(True, bracket_left, param), width=100, step=0, callback=manage_range, **(kwargs[0]))
         dpg.add_text(",")
         bracket_right = dpg.add_text("]")
@@ -451,10 +465,6 @@ def generate_input_for_exp(param):
                 kwargs["default_value"] = params["min"]
             if ("default" in params):
                 kwargs["default_value"] = params["default"]
-            if ("value" in params):
-                # TODO: useful when we want to restore experiment (from exp_res_props either from file or from experiments analysis). Use this knowledge!
-                kwargs["default_value"] = params["value"]
-                del params["value"]
             dpg.add_text(param["title"])
             with dpg.tooltip(dpg.last_item()):
                 dpg.add_text(param["name"])

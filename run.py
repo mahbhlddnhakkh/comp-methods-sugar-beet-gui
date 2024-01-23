@@ -2,18 +2,20 @@ import dearpygui.dearpygui as dpg
 if (__name__ == "__main__"):
     dpg.create_context()
 from src.themes import create_theme_imgui_light
-from src.tabs import tab_manual, tab_experiment
+from src.tabs import tab_manual, tab_experiment, tab_experiment_analysis
 
 def create_gui():
     with dpg.window(tag="Primary window"):
         dpg.add_text("Лабораторная работа по сахарной свекле")
+        # TODO: callback added for testing and reminder. delete pls afterwards
+        #with dpg.tab_bar(callback=lambda sender, app_data: print(app_data)):
         with dpg.tab_bar():
             with dpg.tab(label="Вручную"):
                 tab_manual()
             with dpg.tab(label="Эксперименты"):
                 tab_experiment()
             with dpg.tab(label="Анализ экспериментов"):
-                pass
+                tab_experiment_analysis()
 
 def main():
     dpg.bind_theme(create_theme_imgui_light())

@@ -13,6 +13,8 @@ class exp_res_props:
     n: int = 0
     exp_count: int = 0
     exp_name: str = None
+    exp_name_i: int = None
+    exp_mode: int = None
     # index of chosen algs. Should be sorted, size must be <= len(algs), each element must be from 0 to len(algs)
     chosen_algs: List[int] = None
     # contain basic information. string: string
@@ -25,13 +27,21 @@ class exp_res_props:
     last_res: List[tuple] = None
     # stores average differences for each algorithm
     average_error: List[float] = None
+    # stores path to dir which contains json
+    path: str = None
 
     def init(self, algs_len):
+        '''
+        Call before doing experiment
+        '''
         #self.params = {}
         self.phase_averages = [[0.0]*self.n for i in range(algs_len)]
         self.last_res = [None]*algs_len
 
     def calculate_average_error(self, algs_len):
+        '''
+        Call after doing experiment
+        '''
         self.average_error = [None]*algs_len
         for i in range(algs_len):
             self.average_error[i] = (self.phase_averages[0][-1] - self.phase_averages[i][-1]) / self.phase_averages[0][-1]
@@ -40,20 +50,61 @@ class exp_res_props:
         '''
         Dumps properties to json file
         '''
+        if (path == "" or path == ()):
+            return
         # since we are dumping this, we probably don't need last result anymore (we shouldn't dump in manual tab)
         self.last_res = None
-        with open(os.path.join(path, CFG.exp_res_data_file), "w") as f:
+        self.path = None
+        with open(path, "w") as f:
             json.dump(self.__dict__, f, indent=2, ensure_ascii=False)
 
     def get_from_file(self, path: str) -> None:
         '''
         Gets properties from json file
         '''
-        with open(os.path.join(path, CFG.exp_res_data_file), "r") as f:
+        if (path == "" or path == ()):
+            return
+        with open(path, "r") as f:
             self.__dict__ = json.load(f)
+        self.path = os.path.abspath(path)
+        before_keys = tuple(self.params_algs_specials.keys())
+        for key in before_keys:
+            # for whatever reason json don't allow int to be keys for dict so they are strings now
+            self.params_algs_specials[int(key)] = self.params_algs_specials.pop(key)
+
+    def evaluate_exp_name(self) -> str:
+        '''
+        Replaces ${i} with corresponding value
+        '''
+        return self.exp_name.replace("${i}", str(self.exp_name_i), 1)
+    
+    def evaluate_regex_name(self) -> str:
+        '''
+        Gets regex name to test for finding correct i
+        '''
+        return self.exp_name.replace("${i}", r"\d+", 1)
+
+    def get_exp_filename_without_evaluation(self) -> str:
+        '''
+        Gets filename but with ${i} placeholder
+        '''
+        return self.exp_name + ".json"
+
+    def evaluate_exp_filename(self) -> str:
+        '''
+        Return json filename
+        '''
+        return self.evaluate_exp_name() + ".json"
+
+    def evaluate_exp_filename_regex(self) -> str:
+        '''
+        Same as evaluate_exp_filename, but regex
+        '''
+        return self.evaluate_regex_name() + ".json"
 
     def __str__(self):
-        return json.dumps(dict(self.__dict__, **{"last_res": None}), ensure_ascii=False)
+        #return json.dumps(dict(self.__dict__, **{"last_res": None}), ensure_ascii=False)
+        return str(self.__dict__)
 
 
 def do_rand(shape: tuple, v_min, v_max) -> np.ndarray:
