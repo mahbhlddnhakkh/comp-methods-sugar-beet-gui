@@ -29,6 +29,8 @@ class exp_res_props:
     average_error: List[float] = None
     # stores path to dir which contains json
     path: str = None
+    # stores current working directory
+    working_directory: str = None
 
     def init(self, algs_len):
         '''
@@ -54,9 +56,14 @@ class exp_res_props:
             return
         # since we are dumping this, we probably don't need last result anymore (we shouldn't dump in manual tab)
         self.last_res = None
+        tmp2 = self.path
         self.path = None
+        tmp1 = self.working_directory
+        self.working_directory = None
         with open(path, "w") as f:
             json.dump(self.__dict__, f, indent=2, ensure_ascii=False)
+        self.working_directory = tmp1
+        self.path = tmp2
 
     def get_from_file(self, path: str) -> None:
         '''
@@ -67,6 +74,14 @@ class exp_res_props:
         with open(path, "r") as f:
             self.__dict__ = json.load(f)
         self.path = os.path.abspath(path)
+        self.working_directory(os.path.dirname(self.path))
+        before_keys = tuple(self.params_algs_specials.keys())
+        for key in before_keys:
+            # for whatever reason json don't allow int to be keys for dict so they are strings now
+            self.params_algs_specials[int(key)] = self.params_algs_specials.pop(key)
+
+    def copy(self, exp_res) -> None:
+        self.__dict__ = json.loads(json.dumps(dict(exp_res.__dict__, **{"last_res": None}), ensure_ascii=False))
         before_keys = tuple(self.params_algs_specials.keys())
         for key in before_keys:
             # for whatever reason json don't allow int to be keys for dict so they are strings now
@@ -77,7 +92,7 @@ class exp_res_props:
         Replaces ${i} with corresponding value
         '''
         return self.exp_name.replace("${i}", str(self.exp_name_i), 1)
-    
+
     def evaluate_regex_name(self) -> str:
         '''
         Gets regex name to test for finding correct i

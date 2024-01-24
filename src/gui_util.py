@@ -285,11 +285,11 @@ def download_plot_matplotlib(exp_res, _save_path):
             plt.plot(x_arr, exp_res.phase_averages[i], label=algs[i]["name"], marker='o')
     plt.legend()
     #plt.show()
-    dpg.lock_mutex()
     save_path = _save_path
     if (save_path == None):
-        save_path = filedialog.asksaveasfilename(filetypes=[("Изображение", ".png")], initialfile=exp_res.evaluate_exp_name())
-    dpg.unlock_mutex()
+        dpg.lock_mutex()
+        save_path = filedialog.asksaveasfilename(filetypes=[("Изображение", ".png")], initialfile=exp_res.evaluate_exp_name(), initialdir=exp_res.working_directory)
+        dpg.unlock_mutex()
     if (save_path != "" and save_path != ()):
         plt.savefig(save_path)
 
@@ -298,11 +298,11 @@ def save_table_as_csv(exp_res, is_manual, tb, _save_path):
     Saves table as csv for whatever reason
     '''
     tb_ch = dpg.get_item_children(tb)
-    dpg.lock_mutex()
     save_path = _save_path
     if (save_path == None):
-        save_path = filedialog.asksaveasfilename(filetypes=[("Таблица", ".csv")], initialfile=exp_res.evaluate_exp_name())
-    dpg.unlock_mutex()
+        dpg.lock_mutex()
+        save_path = filedialog.asksaveasfilename(filetypes=[("Таблица", ".csv")], initialfile=exp_res.evaluate_exp_name(), initialdir=exp_res.working_directory)
+        dpg.unlock_mutex()
     if (save_path == "" or save_path == ()):
         return
     with open(save_path, 'w') as f:

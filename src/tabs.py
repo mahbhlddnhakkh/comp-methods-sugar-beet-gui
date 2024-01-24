@@ -101,8 +101,6 @@ exp_modes_keys = tuple(exp_modes.keys())
 
 last_exp_mode = 0
 
-working_directory = os.getcwd()
-
 def tab_manual() -> None:
     '''
     Вкладка "Вручную"
@@ -228,11 +226,12 @@ def tab_experiment() -> None:
         Button "Выбрать из файла"
         '''
         dpg.lock_mutex()
-        path = filedialog.askopenfilename(filetypes=[("JSON", "*.json"), ("Любые", "*.*")])
+        path = filedialog.askopenfilename(filetypes=[("JSON", "*.json"), ("Любые", "*.*")], initialdir=exp_res.working_directory)
         dpg.unlock_mutex()
         if (path == "" or path == ()):
             return
         exp_res.get_from_file(path)
+        choose_working_directory_callback(os.path.dirname(path))
         fill_experiment_tab(exp_res)
 
     def save_btn_callback():
@@ -241,9 +240,8 @@ def tab_experiment() -> None:
         '''
         fill_exp_res_name()
         path = exp_res.evaluate_exp_filename()
-        # TODO: ask if okay to replace if exists?
         fill_exp_res()
-        exp_res.dump_to_file(path)
+        exp_res.dump_to_file(os.path.join(exp_res.working_directory, path))
 
     def set_n(sender, app_data):
         '''
@@ -259,9 +257,10 @@ def tab_experiment() -> None:
         fill_exp_res_name()
         if (not "${i}" in exp_res.exp_name):
             reset_exp_name_i_callback()
+            return
         r = re.compile(exp_res.evaluate_exp_filename_regex())
         exp_name_parts = exp_res.get_exp_filename_without_evaluation().split("${i}", 1)
-        cur_exp_files = [int(f.replace(exp_name_parts[0], "", 1).replace(exp_name_parts[1], "", 1)) for f in os.listdir(working_directory) if os.path.isfile(os.path.join(working_directory, f)) and r.match(f)]
+        cur_exp_files = [int(f.replace(exp_name_parts[0], "", 1).replace(exp_name_parts[1], "", 1)) for f in os.listdir(exp_res.working_directory) if os.path.isfile(os.path.join(exp_res.working_directory, f)) and r.match(f)]
         cur_exp_files.sort()
         i = 1
         while (i <= len(cur_exp_files) and cur_exp_files[i-1] == i):
@@ -282,7 +281,7 @@ def tab_experiment() -> None:
         '''
         fill_exp_res_name()
         filename = exp_res.evaluate_exp_filename()
-        path = os.path.join(working_directory, filename)
+        path = os.path.join(exp_res.working_directory, filename)
         if os.path.isfile(path):
             dpg.configure_item(exp_json_exists_text, show=True)
             dpg.configure_item(exp_json_exists_tooltip, show=True)
@@ -323,9 +322,9 @@ def tab_experiment() -> None:
         if (dpg.get_value(save_exp_checkbox)):
             save_btn_callback()
         if (dpg.get_value(save_csv_checkbox)):
-            save_table_as_csv(exp_res, True, tb, os.path.join(working_directory, exp_res.evaluate_exp_name()+".csv"))
+            save_table_as_csv(exp_res, True, tb, os.path.join(exp_res.working_directory, exp_res.evaluate_exp_name()+".csv"))
         if (dpg.get_value(save_plot_checkbox)):
-            download_plot_matplotlib(exp_res, os.path.join(working_directory, exp_res.evaluate_exp_name()+".png"))
+            download_plot_matplotlib(exp_res, os.path.join(exp_res.working_directory, exp_res.evaluate_exp_name()+".png"))
         if (dpg.get_value(add_exp_checkbox)):
             add_to_experiment_analysis(exp_res)
         i_increment_type = dpg.get_value(i_increment_type_radio_btn)
@@ -333,10 +332,30 @@ def tab_experiment() -> None:
             restore_exp_name_i_callback()
         elif (i_increment_type == i_increment_types[1]):
             dpg.set_value(exp_name_i_input, dpg.get_value(exp_name_i_input)+1)
-            check_json_exp_exist_callback()
+        check_json_exp_exist_callback()
+
+    def choose_working_directory_callback(_path = None):
+        '''
+        Chooses current working directory (to automatically save things)
+        '''
+        tmp = _path
+        if (tmp == None):
+            dpg.lock_mutex()
+            tmp = filedialog.askdirectory(initialdir=exp_res.working_directory)
+            dpg.unlock_mutex()
+        if (tmp == "" or tmp == ()):
+            return
+        exp_res.working_directory = tmp
+        dpg.set_value(working_directory_input, exp_res.working_directory)
 
     exp_res = exp_res_props()
-    #exp_inputs["exp_res"] = exp_res
+    exp_res.working_directory = os.getcwd()
+    with dpg.group(horizontal=True):
+        dpg.add_text("Рабочая директория")
+        working_directory_input = dpg.add_input_text(default_value=exp_res.working_directory, readonly=True)
+        exp_inputs["working_directory_input"] = working_directory_input
+        dpg.add_button(label="Изменить", user_data=None, callback=lambda sender, app_data, user_data: choose_working_directory_callback(user_data))
+    dpg.add_separator()
     dpg.add_button(label="Выбрать из файла", callback=choose_from_file_btn_callback)
     dpg.add_separator()
     with dpg.group(horizontal=True):
