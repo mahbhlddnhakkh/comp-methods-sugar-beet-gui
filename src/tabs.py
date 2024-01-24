@@ -1,5 +1,5 @@
 import dearpygui.dearpygui as dpg
-from src.gui_util import matrix_table, select_algs, convert_to_p_matrix, generate_result_plot_table, generate_input_for_exp, fix_range_min_max_input_exp, download_plot_matplotlib, save_table_as_csv
+from src.gui_util import matrix_table, select_algs, convert_to_p_matrix, generate_result_plot_table, generate_result_table_columns, generate_result_table_row, generate_input_for_exp, generate_result_plot, fix_range_min_max_input_exp, download_plot_matplotlib, save_table_as_csv
 from src.config import CFG, mu_div
 from src.util import exp_res_props, generate_matrix_main, generate_matrix_main_ripening, convert_to_p_matrix
 from src.experiment import do_experiment
@@ -10,7 +10,6 @@ import os
 import re
 
 big_result_table = None
-exp_res_big_result_table = None
 
 exp_inputs = {}
 
@@ -167,7 +166,7 @@ def tab_manual() -> None:
     # TODO: save matrix as txt file button
     with dpg.group(horizontal=True):
         dpg.add_text("Введите n")
-        n_input = dpg.add_input_int(min_value=mu_div, max_value=20, default_value=CFG.manual_matrix_default_n, min_clamped=True, max_clamped=True, callback=set_n)
+        n_input = dpg.add_input_int(min_value=mu_div, max_value=20, default_value=CFG.manual_matrix_default_n, min_clamped=True, max_clamped=True, callback=set_n, on_enter=True)
     m_table = matrix_table(False)
     set_n(None, dpg.get_value(n_input))
     m_algs = select_algs(exp_res)
@@ -231,7 +230,7 @@ def tab_experiment() -> None:
         if (path == "" or path == ()):
             return
         exp_res.get_from_file(path)
-        choose_working_directory_callback(os.path.dirname(path))
+        #choose_working_directory_callback(os.path.dirname(path))
         fill_experiment_tab(exp_res)
 
     def save_btn_callback():
@@ -322,7 +321,7 @@ def tab_experiment() -> None:
         if (dpg.get_value(save_exp_checkbox)):
             save_btn_callback()
         if (dpg.get_value(save_csv_checkbox)):
-            save_table_as_csv(exp_res, True, tb, os.path.join(exp_res.working_directory, exp_res.evaluate_exp_name()+".csv"))
+            save_table_as_csv(exp_res, tb, os.path.join(exp_res.working_directory, exp_res.evaluate_exp_name()+".csv"))
         if (dpg.get_value(save_plot_checkbox)):
             download_plot_matplotlib(exp_res, os.path.join(exp_res.working_directory, exp_res.evaluate_exp_name()+".png"))
         if (dpg.get_value(add_exp_checkbox)):
@@ -349,10 +348,11 @@ def tab_experiment() -> None:
         dpg.set_value(working_directory_input, exp_res.working_directory)
 
     exp_res = exp_res_props()
+    exp_inputs["exp_res"] = exp_res
     exp_res.working_directory = os.getcwd()
     with dpg.group(horizontal=True):
         dpg.add_text("Рабочая директория")
-        working_directory_input = dpg.add_input_text(default_value=exp_res.working_directory, readonly=True)
+        working_directory_input = dpg.add_input_text(default_value=exp_res.working_directory, user_data=choose_working_directory_callback, readonly=True)
         exp_inputs["working_directory_input"] = working_directory_input
         dpg.add_button(label="Изменить", user_data=None, callback=lambda sender, app_data, user_data: choose_working_directory_callback(user_data))
     dpg.add_separator()
@@ -362,10 +362,10 @@ def tab_experiment() -> None:
         dpg.add_text("Название эксперимента")
         with dpg.tooltip(dpg.last_item()):
             dpg.add_text("Используйте ${i} для автоматической индексации экспериментов")
-        exp_name_input = dpg.add_input_text(default_value="Эксперимент_${i}", width=500, callback=check_json_exp_exist_callback)
+        exp_name_input = dpg.add_input_text(default_value="Эксперимент_${i}", width=500, callback=check_json_exp_exist_callback, on_enter=True)
         exp_inputs["exp_name_input"] = exp_name_input
         dpg.add_text("${i}=")
-        exp_name_i_input = dpg.add_input_int(min_value=1, min_clamped=True, width=75, callback=check_json_exp_exist_callback)
+        exp_name_i_input = dpg.add_input_int(min_value=1, min_clamped=True, width=75, callback=check_json_exp_exist_callback, on_enter=True)
         exp_inputs["exp_name_i_input"] = exp_name_i_input
         dpg.add_button(label="Восстановить ${i}", callback=restore_exp_name_i_callback)
         with dpg.tooltip(dpg.last_item()):
@@ -388,12 +388,12 @@ def tab_experiment() -> None:
         dpg.set_value(i_increment_type_radio_btn, i_increment_types[0])
     save_exp_checkbox = dpg.add_checkbox(label="Сохранять эксперимент автоматически в корневой папке", default_value=True)
     add_exp_checkbox = dpg.add_checkbox(label="Добавить в 'Анализ экспериментов' автоматически", default_value=True)
-    save_csv_checkbox = dpg.add_checkbox(label="Автоматически сохранять таблицу", default_value=True)
+    save_csv_checkbox = dpg.add_checkbox(label="Автоматически сохранять таблицу (csv)", default_value=False)
     save_plot_checkbox = dpg.add_checkbox(label="Автоматически сохранять график", default_value=True)
     dpg.add_separator()
     with dpg.group(horizontal=True):
         dpg.add_text("Введите n")
-        n_input = dpg.add_input_int(min_value=mu_div, default_value=20, min_clamped=True, callback=set_n)
+        n_input = dpg.add_input_int(min_value=mu_div, default_value=20, min_clamped=True, callback=set_n, on_enter=True)
         exp_inputs["n_input"] = n_input
         set_n(n_input, dpg.get_value(n_input))
     with dpg.group(horizontal=True):
@@ -427,8 +427,13 @@ def fill_experiment_tab(exp_res):
     '''
     Fill out experiment tab's content from exp_res_props. Useful when filling from file or from experiment analysis
     '''
+    if (not exp_inputs["exp_res"] is exp_res):
+        exp_inputs["exp_res"].copy(exp_res)
+    tab_bar = dpg.get_item_parent(dpg.get_item_parent(big_result_table))
+    dpg.set_value(tab_bar, dpg.get_item_children(tab_bar)[1][1])
     dpg.set_value(exp_inputs["exp_name_input"], exp_res.exp_name)
     dpg.set_value(exp_inputs["exp_name_i_input"], exp_res.exp_name_i)
+    dpg.get_item_configuration(exp_inputs["working_directory_input"])["user_data"](exp_res.working_directory)
     dpg.get_item_configuration(exp_inputs["exp_name_input"])["callback"]()
     dpg.set_value(exp_inputs["n_input"], exp_res.n)
     dpg.set_value(exp_inputs["exp_count_input"], exp_res.exp_count)
@@ -452,15 +457,136 @@ def fill_experiment_tab(exp_res):
         dpg.add_button(label="Добавить в 'Анализ экспериментов'", callback=lambda: add_to_experiment_analysis(exp_res))
         dpg.pop_container_stack()
 
-
 def add_to_experiment_analysis(exp_res):
     '''
     Adds this experiment to experiment analysis tab
     '''
-    # TODO: do it
+
+    def get_index_input_from_tb_ch(tb_ch, i):
+        '''
+        Get index input from table's children
+        '''
+        return dpg.get_item_children(dpg.get_item_children(tb_ch[i])[1][0])[1][1]
+
+    def set_index_input_i(_index_input, i) -> None:
+        '''
+        Sets i in index input
+        '''
+        dpg.configure_item(_index_input, user_data=(dpg.get_item_user_data(_index_input)[0], i))
+        dpg.set_value(_index_input, i)
+
+    def index_button_callback(_index_input, add):
+        '''
+        Callback for 2 index buttons: up or down
+        '''
+        _index_input_value = dpg.get_value(_index_input) + add
+        dpg.set_value(_index_input, _index_input_value)
+        dpg.get_item_configuration(_index_input)["callback"](_index_input, _index_input_value, dpg.get_item_user_data(_index_input))
+
+    def index_callback(sender, app_data, user_data):
+        '''
+        Callback for index input for each row
+        '''
+        ind = app_data
+        if (app_data < 1):
+            ind = 1
+            dpg.set_value(sender, ind)
+        tb_ch: list = dpg.get_item_children(big_result_table)[1]
+        if (app_data > len(tb_ch)):
+            ind = len(tb_ch)
+            dpg.set_value(sender, ind)
+        if (ind == user_data[1]):
+            return
+        start = 0
+        end = 0
+        delta = 0
+        if (ind > user_data[1]):
+            start = user_data[1] - 1
+            end = ind
+        else:
+            start = ind
+            end = user_data[1]
+        tb_ch.insert(ind-1, tb_ch.pop(user_data[1]-1))
+        for i in range(start, end):
+            _index_input = get_index_input_from_tb_ch(tb_ch, i)
+            _ind = i + 1
+            set_index_input_i(_index_input, _ind)
+        dpg.reorder_items(big_result_table, 1, tb_ch)
+        dpg.configure_item(sender, user_data=(user_data[0], ind))
+
+    def delete_row(r):
+        '''
+        Deletes row and fixes order
+        '''
+        tb_ch: list = dpg.get_item_children(big_result_table)[1]
+        ind = tb_ch.index(r)
+        for i in range(ind+1, len(tb_ch)):
+            _index_input = get_index_input_from_tb_ch(tb_ch, i)
+            set_index_input_i(_index_input, i)
+        dpg.delete_item(r)
+
+    def show_plot_popup(exp_res):
+        '''
+        Creates popup with plot
+        '''
+        with dpg.window(label="График "+exp_res.evaluate_exp_name(), width=800):
+            generate_result_plot(exp_res, True)
+
+    # TODO: better tooltips
+    tmp_exp_res = exp_res.spawn_copy()
+    r = generate_result_table_row(tmp_exp_res, big_result_table, False)
+    with dpg.table_cell(parent=r):
+        dpg.add_button(label="Э", callback=lambda sender: fill_experiment_tab(dpg.get_item_user_data(dpg.get_item_parent(dpg.get_item_parent(sender)))))
+        with dpg.tooltip(dpg.last_item()):
+            dpg.add_text("Записать в эксперименты")
+        dpg.add_button(label="Г", callback=lambda sender: show_plot_popup(dpg.get_item_user_data(dpg.get_item_parent(dpg.get_item_parent(sender)))))
+        with dpg.tooltip(dpg.last_item()):
+            dpg.add_text("Показать график")
+        dpg.add_button(label="У", callback=lambda sender: delete_row(dpg.get_item_parent(dpg.get_item_parent(sender))))
+        with dpg.tooltip(dpg.last_item()):
+            dpg.add_text("Удалить строку")
+    with dpg.table_cell(parent=r, before=dpg.get_item_children(r)[1][0]):
+        index_width = 20
+        default_index = len(dpg.get_item_children(big_result_table)[1])
+        index_input = dpg.add_input_int(default_value=len(dpg.get_item_children(big_result_table)[1]), user_data=(r, default_index), width=index_width, step=0, callback=index_callback, on_enter=True)
+        dpg.add_button(label="-", width=index_width, before=index_input, user_data=index_input, callback=lambda sender, app_data, user_data: index_button_callback(user_data, -1))
+        dpg.add_button(label="+", width=index_width, user_data=index_input, callback=lambda sender, app_data, user_data: index_button_callback(user_data, 1))
 
 def tab_experiment_analysis() -> None:
     '''
     Вкладка "Анализ экспериментов"
     '''
-    # TODO: do it
+
+    def save_csv():
+        '''
+        Saves whole table as csv
+        '''
+        temp_exp_res = exp_res_props()
+        temp_exp_res.exp_name = "Анализ экспериментов"
+        ignored_columns = [0, len(dpg.get_item_children(big_result_table)[0])-1]
+        save_table_as_csv(temp_exp_res, big_result_table, None, ignored_columns)
+    
+    def add_multiple_experiments_files() -> None:
+        '''
+        Get multiple experiments from files
+        '''
+        dpg.lock_mutex()
+        paths = filedialog.askopenfilenames(filetypes=[("JSON", "*.json"), ("Любые", "*.*")])
+        dpg.unlock_mutex()
+        if (paths == ""):
+            return
+        for p in paths:
+            temp_exp_res = exp_res_props()
+            temp_exp_res.get_from_file(p)
+            add_to_experiment_analysis(temp_exp_res)
+
+    global big_result_table
+    with dpg.group(horizontal=True):
+        dpg.add_button(label="Добавить эксперименты", callback=add_multiple_experiments_files)
+        dpg.add_button(label="Сохранить в CSV", callback=lambda: save_csv())
+        dpg.add_button(label="Очистить", callback=lambda: dpg.delete_item(big_result_table, children_only=True, slot=1))
+    dpg.add_text("")
+    big_result_table = dpg.add_table(header_row=True, borders_innerH=True, borders_outerH=True, borders_innerV=True, borders_outerV=True, resizable=True, policy=dpg.mvTable_SizingStretchProp)
+    dpg.add_table_column(label="Индекс", parent=big_result_table)
+    generate_result_table_columns(big_result_table, False)
+    dpg.add_table_column(label="Управление", parent=big_result_table)

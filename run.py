@@ -1,3 +1,4 @@
+# TODO: good table's columns widths? help
 import dearpygui.dearpygui as dpg
 if (__name__ == "__main__"):
     dpg.create_context()
@@ -7,8 +8,6 @@ from src.tabs import tab_manual, tab_experiment, tab_experiment_analysis
 def create_gui():
     with dpg.window(tag="Primary window"):
         dpg.add_text("Лабораторная работа по сахарной свекле")
-        # TODO: callback added for testing and reminder. delete pls afterwards
-        #with dpg.tab_bar(callback=lambda sender, app_data: print(app_data)):
         with dpg.tab_bar():
             with dpg.tab(label="Вручную"):
                 tab_manual()

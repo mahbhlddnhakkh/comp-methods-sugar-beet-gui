@@ -3,6 +3,6 @@
 /idea/*
 /.vscode/*
 #/test*.txt
-/output*.txt
 /Эксперимент_*.*
+/Анализ экспериментов.csv
 /crashtest.py

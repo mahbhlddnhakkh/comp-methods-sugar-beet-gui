@@ -13,7 +13,7 @@ class exp_res_props:
     n: int = 0
     exp_count: int = 0
     exp_name: str = None
-    exp_name_i: int = None
+    exp_name_i: int = 0
     exp_mode: int = None
     # index of chosen algs. Should be sorted, size must be <= len(algs), each element must be from 0 to len(algs)
     chosen_algs: List[int] = None
@@ -56,14 +56,12 @@ class exp_res_props:
             return
         # since we are dumping this, we probably don't need last result anymore (we shouldn't dump in manual tab)
         self.last_res = None
-        tmp2 = self.path
         self.path = None
-        tmp1 = self.working_directory
         self.working_directory = None
         with open(path, "w") as f:
             json.dump(self.__dict__, f, indent=2, ensure_ascii=False)
-        self.working_directory = tmp1
-        self.path = tmp2
+        self.path = path
+        self.working_directory = os.path.dirname(path)
 
     def get_from_file(self, path: str) -> None:
         '''
@@ -74,18 +72,24 @@ class exp_res_props:
         with open(path, "r") as f:
             self.__dict__ = json.load(f)
         self.path = os.path.abspath(path)
-        self.working_directory(os.path.dirname(self.path))
-        before_keys = tuple(self.params_algs_specials.keys())
-        for key in before_keys:
-            # for whatever reason json don't allow int to be keys for dict so they are strings now
-            self.params_algs_specials[int(key)] = self.params_algs_specials.pop(key)
+        self.working_directory = os.path.dirname(self.path)
+        self.fix_algs_params_keys()
 
     def copy(self, exp_res) -> None:
         self.__dict__ = json.loads(json.dumps(dict(exp_res.__dict__, **{"last_res": None}), ensure_ascii=False))
+        self.fix_algs_params_keys()
+        return self
+
+    def fix_algs_params_keys(self) -> None:
         before_keys = tuple(self.params_algs_specials.keys())
         for key in before_keys:
-            # for whatever reason json don't allow int to be keys for dict so they are strings now
-            self.params_algs_specials[int(key)] = self.params_algs_specials.pop(key)
+            # for whatever reason json doesn't allow int to be keys for dict so they are strings now
+            if (type(key) is str):
+                self.params_algs_specials[int(key)] = self.params_algs_specials.pop(key)
+
+    def spawn_copy(self):
+        exp_res = exp_res_props()
+        return exp_res.copy(self)
 
     def evaluate_exp_name(self) -> str:
         '''

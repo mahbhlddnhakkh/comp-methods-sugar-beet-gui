@@ -271,7 +271,7 @@ class select_algs:
         if (not self._params_launched_once or self._checkbox_default_value):
             self.run_default_params()
 
-def download_plot_matplotlib(exp_res, _save_path):
+def download_plot_matplotlib(exp_res, _save_path=None):
     '''
     Downloads plot
     https://matplotlib.org/stable/users/explain/figure/backends.html#static-backends
@@ -293,11 +293,17 @@ def download_plot_matplotlib(exp_res, _save_path):
     if (save_path != "" and save_path != ()):
         plt.savefig(save_path)
 
-def save_table_as_csv(exp_res, is_manual, tb, _save_path):
+def save_table_as_csv(exp_res, tb, _save_path=None, _ignored_columns=None):
     '''
     Saves table as csv for whatever reason
     '''
     tb_ch = dpg.get_item_children(tb)
+    ignored_columns = None
+    if (_ignored_columns != None):
+        ignored_columns = sorted(_ignored_columns, reverse=True)
+    if (ignored_columns != None):
+        for i in ignored_columns:
+            del tb_ch[0][i]
     save_path = _save_path
     if (save_path == None):
         dpg.lock_mutex()
@@ -311,76 +317,102 @@ def save_table_as_csv(exp_res, is_manual, tb, _save_path):
         for e in tb_ch[0]:
             first_row.append(dpg.get_item_label(e))
         writer.writerow(first_row)
-        writer.writerow(dpg.get_values(dpg.get_item_children(tb_ch[1][0])[1]))
+        for e in tb_ch[1]:
+            r_ch = dpg.get_item_children(e)[1]
+            if (ignored_columns != None):
+                for i in ignored_columns:
+                    del r_ch[i]
+            writer.writerow(dpg.get_values(r_ch))
+        #writer.writerow(dpg.get_values(dpg.get_item_children(tb_ch[1][0])[1]))
 
-def generate_result_plot_table(exp_res, is_manual=False) -> tuple:
+def generate_result_table_columns(tb, is_manual=False):
     '''
-    Generates results and plot table
+    Generates result table's columns
     '''
+    if (not is_manual):
+        for e in ("Название", "Параметры", "Кол-во экспериментов"):
+            dpg.add_table_column(label=e, parent=tb)
+    for e in ("n", "Параметры алгоритмов"):
+        dpg.add_table_column(label=e, parent=tb)
+    for i in range(len(algs)):
+        dpg.add_table_column(label=algs[i]["name"] + " (S / Error)", parent=tb)
 
-    with dpg.table(header_row=True, borders_innerH=True, borders_outerH=True, borders_innerV=True, borders_outerV=True, resizable=True, policy=dpg.mvTable_SizingStretchProp) as tb:
+def generate_result_table_row(exp_res, tb, is_manual=False):
+    '''
+    Generates result table's row from exp_res
+    '''
+    with dpg.table_row(parent=tb, user_data=exp_res) as r:
         if (not is_manual):
-            dpg.add_table_column(label="Название")
-            dpg.add_table_column(label="Параметры")
-            dpg.add_table_column(label="Кол-во экспериментов")
-        for e in ("n", "Параметры алгоритмов"):
-            dpg.add_table_column(label=e)
-        for i in range(len(algs)):
-            dpg.add_table_column(label=algs[i]["name"] + " (S / Error)")
-        with dpg.table_row():
-            if (not is_manual):
-                dpg.add_text(exp_res.evaluate_exp_name())
-                tmp = ""
-                for key in exp_res.params.keys():
-                    p = exp_res.params[key]
-                    tmp += key
-                    if (p == None):
-                        tmp += "\n"
-                        continue
-                    tmp += " = "
-                    if (type(p) is tuple or type(p) is list):
-                        if (p[2] != 0):
-                            tmp += "("
-                        else:
-                            tmp += "["
-                        tmp += f'{p[0]}, {p[1]}'
-                        if (p[3] != 0):
-                            tmp += ")"
-                        else:
-                            tmp += "]"
-                    else:
-                        tmp += str(p)
-                    tmp += "\n"
-                tmp = tmp[:len(tmp)-1]
-                dpg.add_text(tmp)
-                dpg.add_text(str(exp_res.exp_count))
-            dpg.add_text(str(exp_res.n))
+            dpg.add_text(exp_res.evaluate_exp_name())
             tmp = ""
-            for e in exp_res.params_algs_specials:
-                if (exp_res.chosen_algs[e]):
-                    tmp += algs[e]["name"] + ":\n"
-                    cur_params = algs[e]["params"]
-                    for ee in range(len(cur_params)):
-                        tmp += cur_params[ee]["name"] + " = " + str(exp_res.params_algs_specials[e][ee]) + '\n'
-            dpg.add_text(tmp)
-            for i in range(len(algs)):
-                if (exp_res.chosen_algs[i]):
-                    dpg.add_text(f'{exp_res.phase_averages[i][-1]}\n{exp_res.average_error[i]}')
+            for key in exp_res.params.keys():
+                p = exp_res.params[key]
+                tmp += key
+                if (p == None):
+                    tmp += "\n"
+                    continue
+                tmp += " = "
+                if (type(p) is tuple or type(p) is list):
+                    if (p[2] != 0):
+                        tmp += "("
+                    else:
+                        tmp += "["
+                    tmp += f'{p[0]}, {p[1]}'
+                    if (p[3] != 0):
+                        tmp += ")"
+                    else:
+                        tmp += "]"
                 else:
-                    dpg.add_text("")
-    dpg.add_button(label="Сохранить таблицу (csv)", user_data=(exp_res, is_manual, tb, None), callback=lambda sender, app_data, user_data: save_table_as_csv(*user_data))
-    dpg.add_text("")
+                    tmp += str(p)
+                tmp += "\n"
+            tmp = tmp[:len(tmp)-1]
+            dpg.add_text(tmp)
+            dpg.add_text(str(exp_res.exp_count))
+        dpg.add_text(str(exp_res.n))
+        tmp = ""
+        for e in exp_res.params_algs_specials:
+            if (exp_res.chosen_algs[e]):
+                tmp += algs[e]["name"] + ":\n"
+                cur_params = algs[e]["params"]
+                for ee in range(len(cur_params)):
+                    tmp += cur_params[ee]["name"] + " = " + str(exp_res.params_algs_specials[e][ee]) + '\n'
+        dpg.add_text(tmp)
+        for i in range(len(algs)):
+            if (exp_res.chosen_algs[i]):
+                dpg.add_text(f'{exp_res.phase_averages[i][-1]}\n{exp_res.average_error[i]}')
+            else:
+                dpg.add_text("")
+    return r
 
-    with dpg.plot(label=CFG.plot_title, width=-1, anti_aliased=True) as dpg_plot:
-        dpg.add_plot_legend(outside=True, location=dpg.mvPlot_Location_East)
-        #dpg.add_plot_legend()
+def generate_result_plot(exp_res, add_save_button=True, legend_outside=True):
+    '''
+    Generates result plot from exp_res
+    '''
+    with dpg.plot(label=CFG.plot_title + '\n' + exp_res.evaluate_exp_name(), width=-1, anti_aliased=True) as dpg_plot:
+        if (legend_outside):
+            dpg.add_plot_legend(outside=True, location=dpg.mvPlot_Location_East)
+        else:
+            dpg.add_plot_legend()
         x = dpg.add_plot_axis(dpg.mvXAxis, label=CFG.plot_x_label)
         y = dpg.add_plot_axis(dpg.mvYAxis, label=CFG.plot_y_label)
         x_arr = np.arange(1, exp_res.n+1, dtype=int)
         for i in range(len(algs)):
             if (exp_res.chosen_algs[i]):
                 dpg.bind_item_theme(dpg.add_line_series(x_arr, exp_res.phase_averages[i], label=algs[i]["name"], parent=y), plot_theme_1)
-    dpg.add_button(label="Сохранить график", user_data=(exp_res, None), callback=lambda sender, app_data, user_data: download_plot_matplotlib(*user_data))
+    if (add_save_button):
+        dpg.add_button(label="Сохранить график", user_data=(exp_res, None), callback=lambda sender, app_data, user_data: download_plot_matplotlib(*user_data))
+    return dpg_plot
+
+def generate_result_plot_table(exp_res, is_manual=False) -> tuple:
+    '''
+    Generates results and plot table
+    '''
+    with dpg.table(header_row=True, borders_innerH=True, borders_outerH=True, borders_innerV=True, borders_outerV=True, resizable=True, policy=dpg.mvTable_SizingStretchProp) as tb:
+        generate_result_table_columns(tb, is_manual)
+        generate_result_table_row(exp_res, tb, is_manual)
+    dpg.add_button(label="Сохранить таблицу (csv)", user_data=(exp_res, tb, None), callback=lambda sender, app_data, user_data: save_table_as_csv(*user_data))
+    dpg.add_text("")
+    dpg_plot = generate_result_plot(exp_res, True)
     return (tb, dpg_plot)
 
 def generate_input_for_exp(param):
@@ -439,10 +471,10 @@ def generate_input_for_exp(param):
                 range_text += ")"
         else:
             range_text += "inf)"
-        res[0] = dpg_add_input(param["type"], user_data=(True, bracket_left, param), width=100, step=0, callback=manage_range, **(kwargs[0]))
+        res[0] = dpg_add_input(param["type"], user_data=(True, bracket_left, param), width=100, step=0, callback=manage_range, on_enter=True, **(kwargs[0]))
         dpg.add_text(",")
         bracket_right = dpg.add_text("]")
-        res[1] = dpg_add_input(param["type"], user_data=(False, bracket_right, param), width=100, step=0, callback=manage_range, before=bracket_right, **(kwargs[1]))
+        res[1] = dpg_add_input(param["type"], user_data=(False, bracket_right, param), width=100, step=0, callback=manage_range, before=bracket_right, on_enter=True, **(kwargs[1]))
         dpg.add_text("")
         dpg.add_text(range_text)
         for e in res:
