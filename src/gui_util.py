@@ -323,7 +323,6 @@ def save_table_as_csv(exp_res, tb, _save_path=None, _ignored_columns=None):
                 for i in ignored_columns:
                     del r_ch[i]
             writer.writerow(dpg.get_values(r_ch))
-        #writer.writerow(dpg.get_values(dpg.get_item_children(tb_ch[1][0])[1]))
 
 def generate_result_table_columns(tb, is_manual=False):
     '''

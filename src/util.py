@@ -13,7 +13,9 @@ class exp_res_props:
     n: int = 0
     exp_count: int = 0
     exp_name: str = None
+    # Replaces ${i} in exp_name
     exp_name_i: int = 0
+    # Ripening or without ripening
     exp_mode: int = None
     # index of chosen algs. Should be sorted, size must be <= len(algs), each element must be from 0 to len(algs)
     chosen_algs: List[int] = None
@@ -76,18 +78,26 @@ class exp_res_props:
         self.fix_algs_params_keys()
 
     def copy(self, exp_res) -> None:
+        '''
+        Copy properties from another exp_res_props
+        '''
         self.__dict__ = json.loads(json.dumps(dict(exp_res.__dict__, **{"last_res": None}), ensure_ascii=False))
         self.fix_algs_params_keys()
         return self
 
     def fix_algs_params_keys(self) -> None:
+        '''
+        For whatever reason json doesn't allow int to be keys for dict so they are strings now. Needs to be fixed.
+        '''
         before_keys = tuple(self.params_algs_specials.keys())
         for key in before_keys:
-            # for whatever reason json doesn't allow int to be keys for dict so they are strings now
             if (type(key) is str):
                 self.params_algs_specials[int(key)] = self.params_algs_specials.pop(key)
 
     def spawn_copy(self):
+        '''
+        Returns self copy
+        '''
         exp_res = exp_res_props()
         return exp_res.copy(self)
 

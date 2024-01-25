@@ -252,17 +252,26 @@ def tab_experiment() -> None:
         '''
         Calculate correct ${i}
         '''
-        # TODO: pay attention to experiment analysis? can't do for now tho
         fill_exp_res_name()
         if (not "${i}" in exp_res.exp_name):
             reset_exp_name_i_callback()
             return
         r = re.compile(exp_res.evaluate_exp_filename_regex())
         exp_name_parts = exp_res.get_exp_filename_without_evaluation().split("${i}", 1)
-        cur_exp_files = [int(f.replace(exp_name_parts[0], "", 1).replace(exp_name_parts[1], "", 1)) for f in os.listdir(exp_res.working_directory) if os.path.isfile(os.path.join(exp_res.working_directory, f)) and r.match(f)]
-        cur_exp_files.sort()
+        cur_exp_files_ind = [int(f.replace(exp_name_parts[0], "", 1).replace(exp_name_parts[1], "", 1)) for f in os.listdir(exp_res.working_directory) if os.path.isfile(os.path.join(exp_res.working_directory, f)) and r.match(f)]
+        cur_exp_files_ind.sort()
+        if (big_result_table != None):
+            tb_ch = dpg.get_item_children(big_result_table)[1]
+            if (len(tb_ch) > 0):
+                cur_exp_table_ind = []
+                for row in tb_ch:
+                    tmp = dpg.get_item_user_data(row).evaluate_exp_filename()
+                    if (r.match(tmp)):
+                        cur_exp_files_ind.append(int(tmp.replace(exp_name_parts[0], "", 1).replace(exp_name_parts[1], "", 1)))
+                cur_exp_table_ind.sort()
+                cur_exp_files_ind = list(set(cur_exp_files_ind).union(set(cur_exp_table_ind)))
         i = 1
-        while (i <= len(cur_exp_files) and cur_exp_files[i-1] == i):
+        while (i <= len(cur_exp_files_ind) and cur_exp_files_ind[i-1] == i):
             i += 1
         dpg.set_value(exp_name_i_input, i)
         check_json_exp_exist_callback()
