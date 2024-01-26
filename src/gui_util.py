@@ -335,12 +335,13 @@ def generate_result_table_columns(tb, is_manual=False):
     Generates result table's columns
     '''
     if (not is_manual):
-        for e in ("Название", "Параметры", "Кол-во экспериментов"):
+        for e in ("Название", "Параметры"):
             dpg.add_table_column(label=e, parent=tb)
-    for e in ("n", "Параметры алгоритмов"):
-        dpg.add_table_column(label=e, parent=tb)
+        dpg.add_table_column(label="Кол-во экспериментов", parent=tb, init_width_or_weight=0.15)
+    dpg.add_table_column(label="n", parent=tb, init_width_or_weight=0.15)
+    dpg.add_table_column(label="Параметры алгоритмов", parent=tb)
     for i in range(len(algs)):
-        dpg.add_table_column(label=algs[i]["name"] + " (S / Error)", parent=tb)
+        dpg.add_table_column(label=algs[i]["name"] + " (S / Error)", parent=tb, init_width_or_weight=0.4)
 
 def generate_result_table_row(exp_res, tb, is_manual=False):
     '''

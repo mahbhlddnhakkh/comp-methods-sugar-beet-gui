@@ -600,6 +600,6 @@ def tab_experiment_analysis() -> None:
         dpg.add_button(label="Очистить", callback=lambda: dpg.delete_item(big_result_table, children_only=True, slot=1))
     dpg.add_text("")
     big_result_table = dpg.add_table(header_row=True, borders_innerH=True, borders_outerH=True, borders_innerV=True, borders_outerV=True, resizable=True, policy=dpg.mvTable_SizingStretchProp)
-    dpg.add_table_column(label="Индекс", parent=big_result_table)
+    dpg.add_table_column(label="Индекс", parent=big_result_table, init_width_or_weight=0.15)
     generate_result_table_columns(big_result_table, False)
-    dpg.add_table_column(label="Управление", parent=big_result_table)
+    dpg.add_table_column(label="Управление", parent=big_result_table, init_width_or_weight=0.15)
