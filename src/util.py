@@ -60,7 +60,7 @@ class exp_res_props:
         self.last_res = None
         self.path = None
         self.working_directory = None
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             json.dump(self.__dict__, f, indent=2, ensure_ascii=False)
         self.path = path
         self.working_directory = os.path.dirname(path)
@@ -180,15 +180,6 @@ def generate_matrix_main(n: int, a_i: Tuple[float, float], b_ij: Tuple[float, fl
     m[:, 0] = do_rand((n, ), *convert_special_range_to_range(a_i))
     m[:, 1:n] = do_rand((n, n-1), *convert_special_range_to_range(b_ij))
     return m
-
-def test_file_write(file_path: str) -> bool:
-    '''
-    Tests if able to write to file
-    '''
-    f = open(file_path, "a")
-    res: bool = f.writable()
-    f.close()
-    return res
 
 def test_read_file(file_path: str) -> bool:
     '''

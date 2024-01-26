@@ -294,7 +294,7 @@ def download_plot_matplotlib(exp_res, _save_path=None):
     save_path = _save_path
     if (save_path == None):
         dpg.lock_mutex()
-        save_path = filedialog.asksaveasfilename(filetypes=[("Изображение", ".png")], initialfile=exp_res.evaluate_exp_name(), initialdir=exp_res.working_directory)
+        save_path = filedialog.asksaveasfilename(filetypes=[("Изображение", "*.png")], initialfile=exp_res.evaluate_exp_name()+".png", initialdir=exp_res.working_directory)
         dpg.unlock_mutex()
     if (save_path != "" and save_path != ()):
         plt.savefig(save_path)
@@ -313,11 +313,11 @@ def save_table_as_csv(exp_res, tb, _save_path=None, _ignored_columns=None):
     save_path = _save_path
     if (save_path == None):
         dpg.lock_mutex()
-        save_path = filedialog.asksaveasfilename(filetypes=[("Таблица", ".csv")], initialfile=exp_res.evaluate_exp_name(), initialdir=exp_res.working_directory)
+        save_path = filedialog.asksaveasfilename(filetypes=[("Таблица", "*.csv")], initialfile=exp_res.evaluate_exp_name()+".csv", initialdir=exp_res.working_directory)
         dpg.unlock_mutex()
     if (save_path == "" or save_path == ()):
         return
-    with open(save_path, 'w') as f:
+    with open(save_path, 'w', encoding="utf-8") as f:
         writer = csv.writer(f)
         first_row = []
         for e in tb_ch[0]:
