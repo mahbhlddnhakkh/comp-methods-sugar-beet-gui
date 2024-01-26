@@ -126,6 +126,8 @@ def greedy_lean(m: np.ndarray, theta: int) -> Tuple[np.array, float]:
     lean_iteration(m[:, theta:n], reserved, col_ind, theta)
     return (col_ind, m[np.arange(n, dtype=int), col_ind].sum())
 
+# Список алгоритмов с названием, указателем на функцию и параметрами (если есть)
+# Первый алгоритм всегда должен быть оптимальным максимумом! (относительно первого алгоритма будут считать погрешность)
 algs = [
     {
         "name": "Венгерский алгоритм (максимум)",
@@ -134,6 +136,8 @@ algs = [
     {
         "name": "Венгерский алгоритм (минимум)",
         "func": hungarian_min,
+        "check_default": True,
+        "hidden": False,
     },
     {
         "name": "Жадный алгоритм",

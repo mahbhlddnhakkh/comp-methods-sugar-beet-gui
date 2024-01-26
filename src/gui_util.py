@@ -165,6 +165,11 @@ class select_algs:
     def __init__(self, exp_res=None):
         self._exp_res = exp_res
         self._selected_algs = [True]*len(algs)
+        for i in range(len(algs)):
+            if ("check_default" in algs[i]):
+                self._selected_algs[i] = algs[i]["check_default"]
+            if ("hidden" in algs[i] and algs[i]["hidden"]):
+                self._selected_algs[i] = False
         self.run_default_params()
         self._params_launched_once = False
         self._algs_group = dpg.add_group(horizontal=True)
@@ -190,7 +195,8 @@ class select_algs:
         with dpg.window(label="Выбрать алгоритмы", modal=True, no_close=True) as popup:
             with dpg.group():
                 for i in range(len(algs)):
-                    dpg.add_checkbox(label=algs[i]["name"], default_value=self._selected_algs[i])
+                    if (not ("hidden" in algs[i] and algs[i]["hidden"])):
+                        dpg.add_checkbox(label=algs[i]["name"], default_value=self._selected_algs[i])
             with dpg.group(horizontal=True):
                 dpg.add_button(label="ОК", user_data=(popup,), callback=lambda sender, app_data, user_data: self.on_ok_select_algs(user_data[0]))
                 dpg.add_button(label="Отмена", user_data=(popup,), callback=lambda sender, app_data, user_data: self.on_close_popup(user_data[0]))

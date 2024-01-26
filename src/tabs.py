@@ -13,6 +13,10 @@ big_result_table = None
 
 exp_inputs = {}
 
+# Список указателей на функции режимов
+exp_modes_func = (generate_matrix_main, generate_matrix_main_ripening)
+
+# Список режимов с параметрами
 exp_modes = {
     "Без дозаривания": [
         {
@@ -29,10 +33,10 @@ exp_modes = {
                 "type": "exclude", # can be include
                 "min": 0
             },
-            "range_max": {
-                "type": "exclude",
-                "max": 1
-            }
+            #"range_max": {
+            #    "type": "exclude",
+            #    "max": 1
+            #}
         },
         {
             "title": "b_ij",
@@ -64,10 +68,10 @@ exp_modes = {
                 "type": "exclude",
                 "min": 0
             },
-            "range_max": {
-                "type": "exclude",
-                "max": 1
-            }
+            #"range_max": {
+            #    "type": "exclude",
+            #    "max": 1
+            #}
         },
         {
             "title": "b_ij во время дозаривания",
@@ -112,7 +116,7 @@ def tab_manual() -> None:
         dpg.lock_mutex()
         file_path = filedialog.askopenfilename()
         dpg.unlock_mutex()
-        if (path == "" or path == ()):
+        if (file_path == "" or file_path == ()):
             return
         m_table.set_from_file(file_path)
         dpg.set_value(n_input, m_table._n)
@@ -156,6 +160,7 @@ def tab_manual() -> None:
         dpg.pop_container_stack()
 
     exp_res = exp_res_props()
+    exp_res.exp_name = "Эксперимент"
     exp_res.exp_count = 1
     m_is_p = dpg.add_checkbox(label="Преобразованная матрица P", default_value=True)
     dpg.add_separator()
@@ -314,10 +319,9 @@ def tab_experiment() -> None:
         cur_exp_mode = exp_modes_keys[last_exp_mode]
         fill_exp_res()
         dpg.delete_item(res_group, children_only=True)
-        matrix_generators = (generate_matrix_main, generate_matrix_main_ripening)
         exp_res.init(len(algs))
         for i in range(exp_res.exp_count):
-            m: np.ndarray = matrix_generators[last_exp_mode](exp_res.n, **exp_res.params)
+            m: np.ndarray = exp_modes_func[last_exp_mode](exp_res.n, **exp_res.params)
             convert_to_p_matrix(m)
             do_experiment(m, exp_res, i)
         # VERY IMPORTANT LINE! Because can't json.dump this (numpy array).
