@@ -1,4 +1,3 @@
-# TODO: good table's columns widths? help
 import dearpygui.dearpygui as dpg
 if (__name__ == "__main__"):
     dpg.create_context()

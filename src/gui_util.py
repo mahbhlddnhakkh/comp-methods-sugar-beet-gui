@@ -317,8 +317,8 @@ def save_table_as_csv(exp_res, tb, _save_path=None, _ignored_columns=None):
         dpg.unlock_mutex()
     if (save_path == "" or save_path == ()):
         return
-    with open(save_path, 'w', encoding="utf-8") as f:
-        writer = csv.writer(f)
+    with open(save_path, 'w', encoding="utf-8-sig", newline="") as f:
+        writer = csv.writer(f, delimiter=";", lineterminator="\r\n")
         first_row = []
         for e in tb_ch[0]:
             first_row.append(dpg.get_item_label(e))
@@ -328,7 +328,7 @@ def save_table_as_csv(exp_res, tb, _save_path=None, _ignored_columns=None):
             if (ignored_columns != None):
                 for i in ignored_columns:
                     del r_ch[i]
-            writer.writerow(dpg.get_values(r_ch))
+            writer.writerow([dpg.get_value(ee).strip() for ee in r_ch])
 
 def generate_result_table_columns(tb, is_manual=False):
     '''

@@ -60,7 +60,7 @@ class exp_res_props:
         self.last_res = None
         self.path = None
         self.working_directory = None
-        with open(path, "w", encoding="utf-8") as f:
+        with open(path, "w", encoding="utf-8-sig") as f:
             json.dump(self.__dict__, f, indent=2, ensure_ascii=False)
         self.path = path
         self.working_directory = os.path.dirname(path)
