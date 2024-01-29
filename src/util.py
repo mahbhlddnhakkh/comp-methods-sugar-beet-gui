@@ -71,7 +71,7 @@ class exp_res_props:
         '''
         if (path == "" or path == ()):
             return
-        with open(path, "r") as f:
+        with open(path, "r", encoding="utf-8-sig") as f:
             self.__dict__ = json.load(f)
         self.path = os.path.abspath(path)
         self.working_directory = os.path.dirname(self.path)
