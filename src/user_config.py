@@ -50,7 +50,7 @@ algs = [
 ]
 
 # Список указателей на функции режимов
-# def generator(n: int, ...) -> np.ndarray:
+# def generator(n: int, ..., **kwargs) -> np.ndarray:
 exp_modes_func = (generate_matrix_main, generate_matrix_main_ripening)
 
 # Список режимов с параметрами
