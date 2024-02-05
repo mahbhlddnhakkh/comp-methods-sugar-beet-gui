@@ -1,6 +1,6 @@
 import math
 import numpy as np
-from src.algorithms import algs
+from src.user_config import algs
 from src.util import exp_res_props
 
 def do_experiment(m: np.ndarray, exp_res: exp_res_props, exp_i: int) -> None:

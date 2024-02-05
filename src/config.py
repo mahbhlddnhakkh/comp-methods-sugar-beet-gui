@@ -1,5 +1,4 @@
 class CFG:
-    manual_matrix_default_n = 5
     plot_title = "Динамика S по различным планам переработки"
     plot_x_label = "phase"
     plot_y_label = "S"

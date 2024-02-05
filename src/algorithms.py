@@ -1,9 +1,7 @@
 from src.util import do_rand
-from src.config import mu_div
 import scipy.optimize
 import numpy as np
 from typing import Tuple
-from src.config import mu_div
 import math
 
 def hungarian(m: np.ndarray, maximize: bool = True) -> Tuple[np.array, float]:
@@ -125,48 +123,3 @@ def greedy_lean(m: np.ndarray, theta: int) -> Tuple[np.array, float]:
     greedy_iteration(m[:, 0:theta], reserved, col_ind)
     lean_iteration(m[:, theta:n], reserved, col_ind, theta)
     return (col_ind, m[np.arange(n, dtype=int), col_ind].sum())
-
-# Список алгоритмов с названием, указателем на функцию и параметрами (если есть)
-# Первый алгоритм всегда должен быть оптимальным максимумом! (относительно первого алгоритма будут считать погрешность)
-algs = [
-    {
-        "name": "Венгерский алгоритм (максимум)",
-        "func": hungarian_max,
-    },
-    {
-        "name": "Венгерский алгоритм (минимум)",
-        "func": hungarian_min,
-        "check_default": True,
-        "hidden": False,
-    },
-    {
-        "name": "Жадный алгоритм",
-        "func": greedy,
-    },
-    {
-        "name": "Бережливый алгоритм",
-        "func": lean,
-    },
-    {
-        "name": "Бережливо-жадный алгоритм",
-        "func": lean_greedy,
-        "params": [
-            {
-                "name": "theta",
-                "type": int,
-                "default": lambda exp_res: math.floor(exp_res.n / mu_div),
-            },
-        ],
-    },
-    {
-        "name": "Жадно-бережливый алгоритм",
-        "func": greedy_lean,
-        "params": [
-            {
-                "name": "theta",
-                "type": int,
-                "default": lambda exp_res: math.floor(exp_res.n / mu_div),
-            },
-        ],
-    },
-]

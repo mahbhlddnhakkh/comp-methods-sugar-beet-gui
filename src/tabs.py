@@ -1,9 +1,9 @@
 import dearpygui.dearpygui as dpg
-from src.gui_util import matrix_table, select_algs, convert_to_p_matrix, generate_result_plot_table, generate_result_table_columns, generate_result_table_row, generate_input_for_exp, generate_result_plot, fix_range_min_max_input_exp, download_plot_matplotlib, save_table_as_csv
+from src.gui_util import matrix_table, select_algs, generate_result_plot_table, generate_result_table_columns, generate_result_table_row, generate_input_for_exp, generate_result_plot, fix_range_min_max_input_exp, download_plot_matplotlib, save_table_as_csv
 from src.config import CFG, mu_div
-from src.util import exp_res_props, generate_matrix_main, generate_matrix_main_ripening, convert_to_p_matrix
+from src.util import exp_res_props, convert_to_p_matrix
 from src.experiment import do_experiment
-from src.algorithms import algs
+from src.user_config import algs, exp_modes, exp_modes_func
 from tkinter import filedialog
 import sys
 import os
@@ -12,93 +12,6 @@ import re
 big_result_table = None
 
 exp_inputs = {}
-
-# Список указателей на функции режимов
-exp_modes_func = (generate_matrix_main, generate_matrix_main_ripening)
-
-# Список режимов с параметрами
-exp_modes = {
-    "Без дозаривания": [
-        {
-            "title": "",
-            "name": "Без дозаривания",
-            "special": "empty",
-        },
-        {
-            "title": "a_i",
-            "name": "a_i",
-            "type": float,
-            "special": "range",
-            "range_min": {
-                "type": "exclude", # can be include
-                "min": 0
-            },
-            #"range_max": {
-            #    "type": "exclude",
-            #    "max": 1
-            #}
-        },
-        {
-            "title": "b_ij",
-            "name": "b_ij",
-            "type": float,
-            "special": "range",
-            "range_min": {
-                "type": "exclude",
-                "min": 0
-            },
-            "range_max": {
-                "type": "exclude",
-                "max": 1
-            }
-        },
-    ],
-    "С дозариванием": [
-        {
-            "title": "",
-            "name": "С дозариванием",
-            "special": "empty",
-        },
-        {
-            "title": "a_i",
-            "name": "a_i",
-            "type": float,
-            "special": "range",
-            "range_min": {
-                "type": "exclude",
-                "min": 0
-            },
-            #"range_max": {
-            #    "type": "exclude",
-            #    "max": 1
-            #}
-        },
-        {
-            "title": "b_ij во время дозаривания",
-            "name": "b_ij_1",
-            "type": float,
-            "special": "range",
-            "range_min": {
-                "type": "exclude",
-                "min": 1
-            },
-        },
-        {
-            "title": "b_ij после дозаривания",
-            "name": "b_ij_2",
-            "type": float,
-            "special": "range",
-            "range_min": {
-                "type": "exclude",
-                "min": 0
-            },
-            "range_max": {
-                "type": "exclude",
-                "max": 1
-            }
-        },
-    ],
-}
 
 exp_modes_keys = tuple(exp_modes.keys())
 
@@ -171,7 +84,8 @@ def tab_manual() -> None:
     # TODO: save matrix as txt file button
     with dpg.group(horizontal=True):
         dpg.add_text("Введите n")
-        n_input = dpg.add_input_int(min_value=mu_div, max_value=20, default_value=CFG.manual_matrix_default_n, min_clamped=True, max_clamped=True, callback=set_n, on_enter=True)
+        n_input = dpg.add_input_int(min_value=mu_div, max_value=20, default_value=5, min_clamped=True, max_clamped=True, callback=set_n, on_enter=True)
+        dpg.add_text("(для подтверждения ввода нажмите enter)")
     m_table = matrix_table(False)
     set_n(None, dpg.get_value(n_input))
     m_algs = select_algs(exp_res)
@@ -242,10 +156,11 @@ def tab_experiment() -> None:
         '''
         Button "Сохранить"
         '''
-        fill_exp_res_name()
+        #fill_exp_res_name()
         path = exp_res.evaluate_exp_filename()
         fill_exp_res()
         exp_res.dump_to_file(os.path.join(exp_res.working_directory, path))
+        check_json_exp_exist_callback()
 
     def set_n(sender, app_data):
         '''
@@ -257,7 +172,7 @@ def tab_experiment() -> None:
         '''
         Calculate correct ${i}
         '''
-        fill_exp_res_name()
+        #fill_exp_res_name()
         if (not "${i}" in exp_res.exp_name):
             reset_exp_name_i_callback()
             return
@@ -292,8 +207,12 @@ def tab_experiment() -> None:
         '''
         If json experiment exists and puts a sign
         '''
+        tmp_exp_res_name = exp_res.exp_name
+        tmp_exp_res_name_i = exp_res.exp_name_i
         fill_exp_res_name()
         filename = exp_res.evaluate_exp_filename()
+        exp_res.exp_name = tmp_exp_res_name
+        exp_res.exp_name_i = tmp_exp_res_name_i
         path = os.path.join(exp_res.working_directory, filename)
         if os.path.isfile(path):
             dpg.configure_item(exp_json_exists_text, show=True)
@@ -375,21 +294,23 @@ def tab_experiment() -> None:
         dpg.add_text("Название эксперимента")
         with dpg.tooltip(dpg.last_item()):
             dpg.add_text("Используйте ${i} для автоматической индексации экспериментов")
-        exp_name_input = dpg.add_input_text(default_value="Эксперимент_${i}", width=500, callback=check_json_exp_exist_callback, on_enter=True)
+        exp_name_input = dpg.add_input_text(default_value="Эксперимент_${i}", width=500, callback=check_json_exp_exist_callback)
         exp_inputs["exp_name_input"] = exp_name_input
         dpg.add_text("${i}=")
-        exp_name_i_input = dpg.add_input_int(min_value=1, min_clamped=True, width=75, callback=check_json_exp_exist_callback, on_enter=True)
+        exp_name_i_input = dpg.add_input_int(min_value=1, min_clamped=True, width=75, callback=check_json_exp_exist_callback)
         exp_inputs["exp_name_i_input"] = exp_name_i_input
         dpg.add_button(label="Восстановить ${i}", callback=restore_exp_name_i_callback)
+        fill_exp_res_name()
         with dpg.tooltip(dpg.last_item()):
             dpg.add_text("Значение ${i} станет таким, что имя эксперимента будет уникальным")
-        dpg.add_button(label="Сбросить ${i}", callback=lambda: dpg.set_value(exp_name_i_input, 1))
+        dpg.add_button(label="Сбросить ${i}", callback=reset_exp_name_i_callback)
         with dpg.tooltip(dpg.last_item()):
             dpg.add_text("Значение ${i} станет 1")
         exp_json_exists_text = dpg.add_text("(будет перезаписан)", show=False)
         with dpg.tooltip(exp_json_exists_text, show=False) as exp_json_exists_tooltip:
             dpg.add_text("")
         restore_exp_name_i_callback()
+        fill_exp_res_name()
     i_increment_types = ("Умный", "+1", "Нет")
     with dpg.group(horizontal=True):
         dpg.add_text("Режим инкремента ${i}")
@@ -406,7 +327,7 @@ def tab_experiment() -> None:
     dpg.add_separator()
     with dpg.group(horizontal=True):
         dpg.add_text("Введите n")
-        n_input = dpg.add_input_int(min_value=mu_div, default_value=20, min_clamped=True, callback=set_n, on_enter=True)
+        n_input = dpg.add_input_int(min_value=mu_div, default_value=20, min_clamped=True, callback=set_n)
         exp_inputs["n_input"] = n_input
         set_n(n_input, dpg.get_value(n_input))
     with dpg.group(horizontal=True):

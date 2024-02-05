@@ -1,9 +1,8 @@
 import dearpygui.dearpygui as dpg
 import os
 from src.config import CFG
-from src.themes import highlight_cell_theme, plot_theme_1
-from src.util import generate_matrix_main, generate_matrix_main_ripening, convert_to_p_matrix
-from src.algorithms import algs
+from src.themes import highlight_cell_theme, dpg_plot_line_themes, dpg_plot_line_names, plt_markers, markers_count
+from src.user_config import algs
 from typing import Tuple, Dict, List
 import numpy as np
 from matplotlib import pyplot as plt
@@ -11,6 +10,7 @@ import matplotlib
 matplotlib.use("agg")
 from tkinter import filedialog
 import csv
+import math
 
 def dpg_add_input(dtype=str, **kwargs):
     '''
@@ -282,13 +282,17 @@ def download_plot_matplotlib(exp_res, _save_path=None):
     Downloads plot
     https://matplotlib.org/stable/users/explain/figure/backends.html#static-backends
     '''
+    plt.rcParams["figure.figsize"] = [12.8, 9.6] # better size?
     plt.title(CFG.plot_title)
     plt.xlabel(CFG.plot_x_label)
     plt.ylabel(CFG.plot_y_label)
-    x_arr = np.arange(1, exp_res.n+1)
+    x_arr = np.arange(1, exp_res.n+1, dtype=int)
+    j = 0
     for i in range(len(algs)):
         if (exp_res.chosen_algs[i]):
-            plt.plot(x_arr, exp_res.phase_averages[i], label=algs[i]["name"], marker='o')
+            j_c = j % markers_count
+            plt.plot(x_arr, exp_res.phase_averages[i], label=algs[i]["name"], marker=plt_markers[j_c])
+            j += 1
     plt.legend()
     #plt.show()
     save_path = _save_path
@@ -394,7 +398,8 @@ def generate_result_plot(exp_res, add_save_button=True, legend_outside=True):
     '''
     Generates result plot from exp_res
     '''
-    with dpg.plot(label=CFG.plot_title + '\n' + exp_res.evaluate_exp_name(), width=-1, anti_aliased=True) as dpg_plot:
+    # TODO: good height for plot?
+    with dpg.plot(label=CFG.plot_title + '\n' + exp_res.evaluate_exp_name(), width=-1, height=math.floor(dpg.get_viewport_width()/3), anti_aliased=True) as dpg_plot:
         if (legend_outside):
             dpg.add_plot_legend(outside=True, location=dpg.mvPlot_Location_East)
         else:
@@ -402,9 +407,12 @@ def generate_result_plot(exp_res, add_save_button=True, legend_outside=True):
         x = dpg.add_plot_axis(dpg.mvXAxis, label=CFG.plot_x_label)
         y = dpg.add_plot_axis(dpg.mvYAxis, label=CFG.plot_y_label)
         x_arr = np.arange(1, exp_res.n+1, dtype=int)
+        j = 0
         for i in range(len(algs)):
             if (exp_res.chosen_algs[i]):
-                dpg.bind_item_theme(dpg.add_line_series(x_arr, exp_res.phase_averages[i], label=algs[i]["name"], parent=y), plot_theme_1)
+                j_c = j % markers_count
+                dpg.bind_item_theme(dpg.add_line_series(x_arr, exp_res.phase_averages[i], label=f'{algs[i]["name"]} [{dpg_plot_line_names[j_c]}]', parent=y), dpg_plot_line_themes[j_c])
+                j += 1
     if (add_save_button):
         dpg.add_button(label="Сохранить график", user_data=(exp_res, None), callback=lambda sender, app_data, user_data: download_plot_matplotlib(*user_data))
     return dpg_plot
@@ -477,10 +485,10 @@ def generate_input_for_exp(param):
                 range_text += ")"
         else:
             range_text += "inf)"
-        res[0] = dpg_add_input(param["type"], user_data=(True, bracket_left, param), width=100, step=0, callback=manage_range, on_enter=True, **(kwargs[0]))
+        res[0] = dpg_add_input(param["type"], user_data=(True, bracket_left, param), width=100, step=0, callback=manage_range, **(kwargs[0]))
         dpg.add_text(",")
         bracket_right = dpg.add_text("]")
-        res[1] = dpg_add_input(param["type"], user_data=(False, bracket_right, param), width=100, step=0, callback=manage_range, before=bracket_right, on_enter=True, **(kwargs[1]))
+        res[1] = dpg_add_input(param["type"], user_data=(False, bracket_right, param), width=100, step=0, callback=manage_range, before=bracket_right, **(kwargs[1]))
         dpg.add_text("")
         dpg.add_text(range_text)
         for e in res:
