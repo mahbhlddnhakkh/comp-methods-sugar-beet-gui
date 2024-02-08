@@ -1,6 +1,6 @@
 import dearpygui.dearpygui as dpg
 import os
-from src.config import CFG
+from src.config import CFG, plt_size
 from src.themes import highlight_cell_theme, dpg_plot_line_themes, dpg_plot_line_names, plt_markers, markers_count
 from src.user_config import algs
 from typing import Tuple, Dict, List
@@ -282,7 +282,7 @@ def download_plot_matplotlib(exp_res, _save_path=None):
     Downloads plot
     https://matplotlib.org/stable/users/explain/figure/backends.html#static-backends
     '''
-    plt.rcParams["figure.figsize"] = [12.8, 9.6] # better size?
+    plt.rcParams["figure.figsize"] = plt_size
     plt.title(CFG.plot_title)
     plt.xlabel(CFG.plot_x_label)
     plt.ylabel(CFG.plot_y_label)
