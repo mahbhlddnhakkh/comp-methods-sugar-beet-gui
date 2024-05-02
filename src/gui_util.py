@@ -1,6 +1,6 @@
 import dearpygui.dearpygui as dpg
 import os
-from src.config import CFG, plt_size
+from src.config import CFG, plt_size, float_precision
 from src.themes import highlight_cell_theme, dpg_plot_line_themes, dpg_plot_line_names, plt_markers, markers_count
 from src.user_config import algs
 from typing import Tuple, Dict, List
@@ -389,7 +389,7 @@ def generate_result_table_row(exp_res, tb, is_manual=False):
         dpg.add_text(tmp)
         for i in range(len(algs)):
             if (exp_res.chosen_algs[i]):
-                dpg.add_text(f'{exp_res.phase_averages[i][-1]}\n{exp_res.average_error[i]}')
+                dpg.add_text(f"%.{float_precision}f" % exp_res.phase_averages[i][-1] + "\n" + f"%.{float_precision}f" % exp_res.average_error[i])
             else:
                 dpg.add_text("")
     return r
@@ -411,7 +411,8 @@ def generate_result_plot(exp_res, add_save_button=True, legend_outside=True):
         for i in range(len(algs)):
             if (exp_res.chosen_algs[i]):
                 j_c = j % markers_count
-                dpg.bind_item_theme(dpg.add_line_series(x_arr, exp_res.phase_averages[i], label=f'{algs[i]["name"]} [{dpg_plot_line_names[j_c]}]', parent=y), dpg_plot_line_themes[j_c])
+                #dpg.bind_item_theme(dpg.add_line_series(x_arr, exp_res.phase_averages[i], label=f'{algs[i]["name"]} [{dpg_plot_line_names[j_c]}]', parent=y), dpg_plot_line_themes[j_c])
+                dpg.bind_item_theme(dpg.add_line_series(x_arr, exp_res.phase_averages[i], label=f'{algs[i]["name"]}', parent=y), dpg_plot_line_themes[j_c])
                 j += 1
     if (add_save_button):
         dpg.add_button(label="Сохранить график", user_data=(exp_res, None), callback=lambda sender, app_data, user_data: download_plot_matplotlib(*user_data))

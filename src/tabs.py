@@ -1,6 +1,6 @@
 import dearpygui.dearpygui as dpg
 from src.gui_util import matrix_table, select_algs, generate_result_plot_table, generate_result_table_columns, generate_result_table_row, generate_input_for_exp, generate_result_plot, fix_range_min_max_input_exp, download_plot_matplotlib, save_table_as_csv
-from src.config import CFG, mu_div
+from src.config import CFG, mu_div, float_precision
 from src.util import exp_res_props, convert_to_p_matrix
 from src.experiment import do_experiment
 from src.user_config import algs, exp_modes, exp_modes_func
@@ -61,8 +61,10 @@ def tab_manual() -> None:
             if (exp_res.chosen_algs[i]):
                 dpg.add_separator()
                 dpg.add_text(f'{algs[i]["name"]}')
-                dpg.add_text(f'S = {exp_res.last_res[i][1]}')
-                dpg.add_text(f'Погрешность = {exp_res.average_error[i]}')
+                #dpg.add_text(f'S = {exp_res.last_res[i][1]}')
+                dpg.add_text("S = " + f"%.{float_precision}f" % exp_res.last_res[i][1])
+                #dpg.add_text(f'Погрешность = {exp_res.average_error[i]}')
+                dpg.add_text("Погрешность = " + f"%.{float_precision}f" % exp_res.average_error[i])
                 dpg.add_text(f'Выбор: {exp_res.last_res[i][0]+1}')
                 if ("params" in algs[i]):
                     for j in range(len(algs[i]["params"])):

@@ -18,7 +18,7 @@ def create_gui():
 def main():
     dpg.bind_theme(create_theme_imgui_light())
     with dpg.font_registry():
-        with dpg.font("fonts/notomono-regular.ttf", 15, default_font=True, tag="Default font") as f:
+        with dpg.font("fonts/notomono-regular.ttf", 18, default_font=True, tag="Default font") as f:
             dpg.add_font_range_hint(dpg.mvFontRangeHint_Cyrillic)
 
     create_gui()
